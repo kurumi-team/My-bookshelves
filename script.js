@@ -130,7 +130,7 @@ searchForm.addEventListener('submit', async (e) => {
 
   try {
     const res = await fetch(
-      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10`
+      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10&key=AIzaSyA7MtgZSbBxmJ5_H7OrkmSPidTvPAuR75A`
     );
     const data = await res.json();
     renderSearchResults(data.items || []);
