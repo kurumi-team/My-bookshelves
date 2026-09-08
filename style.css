@@ -345,13 +345,42 @@ button {
 
 .impression-stars { color: var(--gold); letter-spacing: 1px; font-size: 0.9rem; }
 .impression-tag { font-size: 0.88rem; margin: 4px 0 2px; }
+.impression-path { font-size: 0.8rem; color: var(--ink-soft); margin: 0 0 2px; }
+.impression-note { font-size: 0.85rem; margin: 4px 0 2px; padding: 6px 8px; background: var(--paper-deep); border-radius: var(--radius); }
 .impression-date { font-size: 0.75rem; color: var(--ink-soft); margin: 0; }
+
+.impression-item-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.btn-edit, .btn-delete {
+  background: none;
+  border: 1px solid var(--line);
+  padding: 5px 10px;
+  border-radius: var(--radius);
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.btn-delete:hover { border-color: var(--ribbon); color: var(--ribbon); }
+.btn-edit:hover { border-color: var(--gold); color: var(--gold); }
 
 /* ===== 感想記録パネル ===== */
 .field-label {
   font-size: 0.88rem;
   font-weight: 500;
   margin: 18px 0 8px;
+}
+
+.step-block {
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .star-picker {
@@ -389,6 +418,30 @@ button {
   background: var(--ribbon);
   border-color: var(--ribbon);
   color: var(--paper);
+}
+
+#freeTextInput {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 0.9rem;
+  resize: none;
+  background: #fff;
+  color: var(--ink);
+}
+
+#freeTextInput:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+
+.char-counter {
+  text-align: right;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  margin: 4px 0 0;
 }
 
 #saveImpressionBtn {

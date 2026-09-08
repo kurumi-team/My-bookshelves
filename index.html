@@ -78,11 +78,11 @@
     </div>
   </section>
 
-  <!-- ===== 感想記録パネル（星＋ワンタップ選択肢） ===== -->
+  <!-- ===== 感想記録パネル（星→3段階の分岐質問） ===== -->
   <section class="panel" id="impressionPanel" hidden>
     <div class="panel-inner">
       <button class="btn-close" data-close-panel>閉じる</button>
-      <h2 class="panel-title">感想を記録</h2>
+      <h2 class="panel-title" id="impressionPanelTitle">感想を記録</h2>
 
       <p class="field-label">星をつける</p>
       <div class="star-picker" id="starPicker">
@@ -93,13 +93,26 @@
         <button class="star" data-value="5">★</button>
       </div>
 
-      <p class="field-label">今の気持ちに近いものは？</p>
-      <div class="tag-picker" id="tagPicker">
-        <button class="tag-option" data-tag="心に残った">心に残った</button>
-        <button class="tag-option" data-tag="学びがあった">学びがあった</button>
-        <button class="tag-option" data-tag="楽しかった">楽しかった</button>
-        <button class="tag-option" data-tag="また読み返したい">また読み返したい</button>
-        <button class="tag-option" data-tag="期待と違った">期待と違った</button>
+      <div class="step-block" id="q1Block">
+        <p class="field-label">今の気持ちに近いものは？</p>
+        <div class="tag-picker" id="q1Picker">
+          <button class="tag-option" data-q1="心に残った">心に残った</button>
+          <button class="tag-option" data-q1="学びや気づきがあった">学びや気づきがあった</button>
+          <button class="tag-option" data-q1="楽しく読めた">楽しく読めた</button>
+          <button class="tag-option" data-q1="心が苦しくなった">心が苦しくなった</button>
+          <button class="tag-option" data-q1="期待と違った">期待と違った</button>
+          <button class="tag-option" data-q1="もっと知りたくなった">もっと知りたくなった</button>
+        </div>
+      </div>
+
+      <!-- Q2・Q3はJSが選択に応じて動的に挿入する -->
+      <div id="q2Block"></div>
+      <div id="q3Block"></div>
+
+      <div class="step-block" id="freeTextBlock" hidden>
+        <p class="field-label">自由記述（任意・50文字まで）</p>
+        <textarea id="freeTextInput" maxlength="50" rows="3" placeholder="もう少しだけ言葉にしておきたいことがあれば"></textarea>
+        <p class="char-counter"><span id="freeTextCount">0</span> / 50</p>
       </div>
 
       <button class="btn-primary" id="saveImpressionBtn" disabled>感想を保存</button>
