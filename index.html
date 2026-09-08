@@ -14,45 +14,50 @@
   <!-- ===== ヘッダー ===== -->
   <header class="app-header">
     <h1 class="logo">My Bookshelf</h1>
-    <button class="btn-add" id="openSearchBtn" aria-label="本を登録する">＋ 本を登録</button>
+    <nav class="lang-switch" id="langSwitch" aria-label="Language">
+      <button class="lang-btn" data-lang="ja">JA</button>
+      <button class="lang-btn" data-lang="en">EN</button>
+      <button class="lang-btn" data-lang="vi">VI</button>
+    </nav>
+    <button class="btn-add" id="openSearchBtn" data-i18n="addBook" aria-label="本を登録する">＋ 本を登録</button>
   </header>
 
     <!-- ===== ホーム画面 ===== -->
   <section class="home-dashboard" id="homeDashboard" >
-    <h2>あなたの本棚</h2>
+    <h2 data-i18n="yourBookshelf">あなたの本棚</h2>
 
     <div class="shelf-summary">
       <button class="summary-card" data-open-shelf="unread">
-        <span>Unread</span>
+        <span data-i18n="tabUnread">Unread</span>
         <strong id="unreadCount">0冊</strong>
       </button>
 
       <button class="summary-card" data-open-shelf="reading">
-        <span>Reading</span>
+        <span data-i18n="tabReading">Reading</span>
         <strong id="readingCount">0冊</strong>
       </button>
 
       <button class="summary-card" data-open-shelf="finished">
-        <span>Finished</span>
+        <span data-i18n="tabFinished">Finished</span>
         <strong id="finishedCount">0冊</strong>
       </button>
     </div>
 
     <div class="recent-books">
-      <h3>最近読んだ本</h3>
+      <h3 data-i18n="recentBooks">最近読んだ本</h3>
       <ul id="recentBooksList"></ul>
-      <p id="noRecentBooks">まだ読み終えた本はありません。</p>
+      <p id="noRecentBooks" data-i18n="noRecentBooks">まだ読み終えた本はありません。</p>
     </div>
   </section>
 
 <!-- ===== ホームに戻る ===== -->
-<button class="btn-home" id="backHomeBtn" hidden>ホームに戻る</button>
+<button class="btn-home" id="backHomeBtn" data-i18n="backHome" hidden>ホームに戻る</button>
 
   <!-- ===== 棚タブ ===== -->
   <nav class="shelf-tabs" id="shelfTabs" hidden> 
-    <button class="tab is-active" data-status="unread">Unread</button>
-    <button class="tab" data-status="reading">Reading</button>
-    <button class="tab" data-status="finished">Finished</button>
+    <button class="tab is-active" data-status="unread" data-i18n="tabUnread">Unread</button>
+    <button class="tab" data-status="reading" data-i18n="tabReading">Reading</button>
+    <button class="tab" data-status="finished" data-i18n="tabFinished">Finished</button>
   </nav>
 
   <!-- ===== 本棚 ===== -->
@@ -60,20 +65,20 @@
     <!-- 本の背表紙はJSで挿入 -->
   </main>
 
-  <p class="empty-state" id="emptyState" hidden>
+  <p class="empty-state" id="emptyState" data-i18n="emptyState" hidden>
     この棚にはまだ本がありません。「＋ 本を登録」から追加してみましょう。
   </p>
 
   <!-- ===== 検索パネル ===== -->
   <section class="panel" id="searchPanel" hidden>
     <div class="panel-inner">
-      <button class="btn-close" data-close-panel>閉じる</button>
-      <h2 class="panel-title">本を検索</h2>
+      <button class="btn-close" data-close-panel data-i18n="close">閉じる</button>
+      <h2 class="panel-title" data-i18n="searchTitle">本を検索</h2>
       <form id="searchForm" class="search-form">
-        <input type="text" id="searchInput" placeholder="タイトルや著者名で検索" autocomplete="off">
-        <button type="submit">検索</button>
+        <input type="text" id="searchInput" data-i18n-placeholder="searchPlaceholder" placeholder="タイトルや著者名で検索" autocomplete="off">
+        <button type="submit" data-i18n="searchButton">検索</button>
       </form>
-      <p class="hint" id="searchHint">読みたい本のタイトルを入力してください。</p>
+      <p class="hint" id="searchHint" data-i18n="searchHintDefault">読みたい本のタイトルを入力してください。</p>
       <ul class="search-results" id="searchResults"></ul>
     </div>
   </section>
@@ -81,7 +86,7 @@
   <!-- ===== 本の詳細パネル ===== -->
   <section class="panel" id="detailPanel" hidden>
     <div class="panel-inner">
-      <button class="btn-close" data-close-panel>閉じる</button>
+      <button class="btn-close" data-close-panel data-i18n="close">閉じる</button>
       <div class="detail-book">
         <img class="detail-cover" id="detailCover" alt="">
         <div class="detail-meta">
@@ -92,19 +97,19 @@
       </div>
 
       <div class="detail-actions" id="detailActions">
-        <button class="btn-status" data-set-status="reading">読み始める</button>
-        <button class="btn-status" data-set-status="finished">読み終えた</button>
+        <button class="btn-status" data-set-status="reading" data-i18n="startReading">読み始める</button>
+        <button class="btn-status" data-set-status="finished" data-i18n="finishReading">読み終えた</button>
       </div>
 
-      <button class="btn-primary" id="leaveImpressionBtn">感想を残す</button>
+      <button class="btn-primary" id="leaveImpressionBtn" data-i18n="leaveImpression">感想を残す</button>
 
-　　　　<button class="btn-delete" id="deleteBookBtn">本棚から削除</button>
+　　　　<button class="btn-delete" id="deleteBookBtn" data-i18n="deleteBook">本棚から削除</button>
 
 
       <div class="impressions-block">
-        <h3>これまでの感想</h3>
+        <h3 data-i18n="pastImpressions">これまでの感想</h3>
         <ul class="impression-list" id="impressionList"></ul>
-        <p class="hint" id="noImpressionHint">まだ感想が記録されていません。</p>
+        <p class="hint" id="noImpressionHint" data-i18n="noImpressions">まだ感想が記録されていません。</p>
       </div>
     </div>
   </section>
@@ -112,10 +117,10 @@
   <!-- ===== 感想記録パネル（星→3段階の分岐質問） ===== -->
   <section class="panel" id="impressionPanel" hidden>
     <div class="panel-inner">
-      <button class="btn-close" data-close-panel>閉じる</button>
-      <h2 class="panel-title" id="impressionPanelTitle">感想を記録</h2>
+      <button class="btn-close" data-close-panel data-i18n="close">閉じる</button>
+      <h2 class="panel-title" id="impressionPanelTitle" data-i18n="recordImpression">感想を記録</h2>
 
-      <p class="field-label">星をつける</p>
+      <p class="field-label" data-i18n="rateStars">星をつける</p>
       <div class="star-picker" id="starPicker">
         <button class="star" data-value="1">★</button>
         <button class="star" data-value="2">★</button>
@@ -125,14 +130,9 @@
       </div>
 
       <div class="step-block" id="q1Block">
-        <p class="field-label">今の気持ちに近いものは？</p>
+        <p class="field-label" data-i18n="q1Prompt">今の気持ちに近いものは？</p>
         <div class="tag-picker" id="q1Picker">
-          <button class="tag-option" data-q1="心に残った">心に残った</button>
-          <button class="tag-option" data-q1="学びや気づきがあった">学びや気づきがあった</button>
-          <button class="tag-option" data-q1="楽しく読めた">楽しく読めた</button>
-          <button class="tag-option" data-q1="心が苦しくなった">心が苦しくなった</button>
-          <button class="tag-option" data-q1="期待と違った">期待と違った</button>
-          <button class="tag-option" data-q1="もっと知りたくなった">もっと知りたくなった</button>
+          <!-- 6つの選択肢はi18n.jsのツリーからJSで動的に挿入する -->
         </div>
       </div>
 
@@ -141,15 +141,16 @@
       <div id="q3Block"></div>
 
       <div class="step-block" id="freeTextBlock" hidden>
-        <p class="field-label">自由記述（任意・50文字まで）</p>
-        <textarea id="freeTextInput" maxlength="50" rows="3" placeholder="もう少しだけ言葉にしておきたいことがあれば"></textarea>
+        <p class="field-label" data-i18n="freeTextLabel">自由記述（任意・50文字まで）</p>
+        <textarea id="freeTextInput" maxlength="50" rows="3" data-i18n-placeholder="freeTextPlaceholder" placeholder="もう少しだけ言葉にしておきたいことがあれば"></textarea>
         <p class="char-counter"><span id="freeTextCount">0</span> / 50</p>
       </div>
 
-      <button class="btn-primary" id="saveImpressionBtn" disabled>感想を保存</button>
+      <button class="btn-primary" id="saveImpressionBtn" data-i18n="saveImpression" disabled>感想を保存</button>
     </div>
   </section>
 
+  <script src="i18n.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
