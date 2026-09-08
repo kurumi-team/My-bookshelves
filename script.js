@@ -12,6 +12,7 @@ let state = {
   pendingQ1: null,
   pendingQ2: null,
   pendingQ3: null,
+  pendingNote: '',
   editingImpressionId: null,
 };
 
@@ -292,6 +293,9 @@ const starPicker = document.getElementById('starPicker');
 const q1Picker = document.getElementById('q1Picker');
 const q2Block = document.getElementById('q2Block');
 const q3Block = document.getElementById('q3Block');
+const freeTextBlock = document.getElementById('freeTextBlock');
+const freeTextInput = document.getElementById('freeTextInput');
+const freeTextCount = document.getElementById('freeTextCount');
 const saveImpressionBtn = document.getElementById('saveImpressionBtn');
 
 // ---------- パネルの開閉 ----------
@@ -489,6 +493,7 @@ function renderImpressions(bookId) {
       <p class="impression-stars">${'★'.repeat(imp.stars)}${'☆'.repeat(5 - imp.stars)}</p>
       <p class="impression-tag">${escapeHtml(imp.q1 || '')}</p>
       ${pathText ? `<p class="impression-path">${escapeHtml(pathText)}</p>` : ''}
+      ${imp.note ? `<p class="impression-note">${escapeHtml(imp.note)}</p>` : ''}
       <p class="impression-date">${formatDate(imp.date)}</p>
       <div class="impression-item-actions">
         <button class="btn-edit" data-edit-id="${imp.id}">編集</button>
@@ -534,6 +539,9 @@ function startImpressionFlow() {
   q1Picker.querySelectorAll('.tag-option').forEach((t) => t.classList.remove('is-selected'));
   q2Block.innerHTML = '';
   q3Block.innerHTML = '';
+  freeTextBlock.hidden = true;
+  freeTextInput.value = '';
+  freeTextCount.textContent = '0';
   updateSaveButtonState();
   openPanel(impressionPanel);
 }
@@ -547,9 +555,12 @@ function openImpressionEditor(impressionId) {
   state.pendingQ1 = imp.q1 || null;
   state.pendingQ2 = imp.q2 || null;
   state.pendingQ3 = imp.q3 || null;
+  state.pendingNote = imp.note || '';
 
   impressionPanelTitle.textContent = '感想を編集';
   updateStarDisplay();
+  freeTextInput.value = state.pendingNote;
+  freeTextCount.textContent = String(state.pendingNote.length);
 
   q1Picker.querySelectorAll('.tag-option').forEach((t) => {
     t.classList.toggle('is-selected', t.dataset.q1 === state.pendingQ1);
@@ -564,6 +575,8 @@ function openImpressionEditor(impressionId) {
     q2Block.innerHTML = '';
     q3Block.innerHTML = '';
   }
+
+  freeTextBlock.hidden = !state.pendingQ3;
 
   updateSaveButtonState();
   openPanel(impressionPanel);
@@ -594,6 +607,7 @@ q1Picker.addEventListener('click', (e) => {
   state.pendingQ2 = null;
   state.pendingQ3 = null;
   q3Block.innerHTML = '';
+  freeTextBlock.hidden = true;
 
   if (IMPRESSION_TREE[state.pendingQ1]) {
     renderQ2(state.pendingQ1);
@@ -627,6 +641,7 @@ function renderQ2(q1Value) {
 
     state.pendingQ2 = tag.dataset.q2;
     state.pendingQ3 = null;
+    freeTextBlock.hidden = true;
     renderQ3(q1Value, state.pendingQ2);
     updateSaveButtonState();
   });
@@ -660,6 +675,7 @@ function renderQ3(q1Value, q2Label) {
     tag.classList.add('is-selected');
 
     state.pendingQ3 = tag.dataset.q3;
+    freeTextBlock.hidden = false;
     updateSaveButtonState();
   });
 }
@@ -669,8 +685,14 @@ function updateSaveButtonState() {
   saveImpressionBtn.disabled = !complete;
 }
 
+freeTextInput.addEventListener('input', () => {
+  state.pendingNote = freeTextInput.value;
+  freeTextCount.textContent = String(freeTextInput.value.length);
+});
+
 saveImpressionBtn.addEventListener('click', () => {
   const impressions = loadImpressions();
+  const note = freeTextInput.value.trim().slice(0, 50);
 
   if (state.editingImpressionId) {
     const target = impressions.find((imp) => imp.id === state.editingImpressionId);
@@ -679,6 +701,7 @@ saveImpressionBtn.addEventListener('click', () => {
       target.q1 = state.pendingQ1;
       target.q2 = state.pendingQ2;
       target.q3 = state.pendingQ3;
+      target.note = note;
     }
   } else {
     impressions.push({
@@ -688,6 +711,7 @@ saveImpressionBtn.addEventListener('click', () => {
       q1: state.pendingQ1,
       q2: state.pendingQ2,
       q3: state.pendingQ3,
+      note,
       date: new Date().toISOString(),
     });
   }
