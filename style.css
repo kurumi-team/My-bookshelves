@@ -452,3 +452,7 @@ button {
   background: var(--line);
   color: var(--ink-soft);
 }
+
+[hidden] {
+  display: none !important;
+}

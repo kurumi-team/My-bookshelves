@@ -272,6 +272,13 @@ const shelfEl = document.getElementById('shelf');
 const emptyStateEl = document.getElementById('emptyState');
 const shelfTabsEl = document.getElementById('shelfTabs');
 
+const homeDashboard = document.getElementById('homeDashboard');
+const backHomeBtn = document.getElementById('backHomeBtn');
+
+const unreadCount = document.getElementById('unreadCount');
+const readingCount = document.getElementById('readingCount');
+const finishedCount = document.getElementById('finishedCount');
+
 const searchPanel = document.getElementById('searchPanel');
 const searchForm = document.getElementById('searchForm');
 const searchInput = document.getElementById('searchInput');
@@ -313,6 +320,47 @@ document.querySelectorAll('[data-close-panel]').forEach((btn) => {
   btn.addEventListener('click', () => {
     closePanel(btn.closest('.panel'));
   });
+});
+
+function renderHome() {
+  const books = loadBooks();
+
+  const unreadBooks = books.filter((book) => book.status === 'unread');
+  const readingBooks = books.filter((book) => book.status === 'reading');
+  const finishedBooks = books.filter((book) => book.status === 'finished');
+
+  unreadCount.textContent = `${unreadBooks.length}冊`;
+  readingCount.textContent = `${readingBooks.length}冊`;
+  finishedCount.textContent = `${finishedBooks.length}冊`;
+}
+
+document.querySelectorAll('[data-open-shelf]').forEach((button) => {
+  button.addEventListener('click', () => {
+    const status = button.dataset.openShelf;
+
+    state.activeShelf = status;
+
+    homeDashboard.hidden = true;
+    shelfTabsEl.hidden = false;
+    shelfEl.hidden = false;
+    backHomeBtn.hidden = false;
+
+    document.querySelectorAll('.tab').forEach((tab) => {
+      tab.classList.toggle('is-active', tab.dataset.status === status);
+    });
+
+    renderShelf();
+  });
+});
+
+backHomeBtn.addEventListener('click', () => {
+  homeDashboard.hidden = false;
+  backHomeBtn.hidden = true;
+  shelfTabsEl.hidden = true;
+  shelfEl.hidden = true;
+  emptyStateEl.hidden = true;
+
+  renderHome();
 });
 
 // ---------- 本棚の描画 ----------
@@ -762,4 +810,4 @@ function escapeHtml(str) {
 
 // ---------- 初期描画 ----------
 
-renderShelf();
+renderHome();
