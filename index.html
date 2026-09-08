@@ -17,15 +17,46 @@
     <button class="btn-add" id="openSearchBtn" aria-label="本を登録する">＋ 本を登録</button>
   </header>
 
+    <!-- ===== ホーム画面 ===== -->
+  <section class="home-dashboard" id="homeDashboard" >
+    <h2>あなたの本棚</h2>
+
+    <div class="shelf-summary">
+      <button class="summary-card" data-open-shelf="unread">
+        <span>Unread</span>
+        <strong id="unreadCount">0冊</strong>
+      </button>
+
+      <button class="summary-card" data-open-shelf="reading">
+        <span>Reading</span>
+        <strong id="readingCount">0冊</strong>
+      </button>
+
+      <button class="summary-card" data-open-shelf="finished">
+        <span>Finished</span>
+        <strong id="finishedCount">0冊</strong>
+      </button>
+    </div>
+
+    <div class="recent-books">
+      <h3>最近読んだ本</h3>
+      <ul id="recentBooksList"></ul>
+      <p id="noRecentBooks">まだ読み終えた本はありません。</p>
+    </div>
+  </section>
+
+<!-- ===== ホームに戻る ===== -->
+<button class="btn-home" id="backHomeBtn" hidden>ホームに戻る</button>
+
   <!-- ===== 棚タブ ===== -->
-  <nav class="shelf-tabs" id="shelfTabs">
+  <nav class="shelf-tabs" id="shelfTabs" hidden> 
     <button class="tab is-active" data-status="unread">Unread</button>
     <button class="tab" data-status="reading">Reading</button>
     <button class="tab" data-status="finished">Finished</button>
   </nav>
 
   <!-- ===== 本棚 ===== -->
-  <main class="shelf" id="shelf" aria-live="polite">
+  <main class="shelf" id="shelf" aria-live="polite" hidden>
     <!-- 本の背表紙はJSで挿入 -->
   </main>
 
@@ -66,7 +97,7 @@
       </div>
 
       <button class="btn-primary" id="leaveImpressionBtn">感想を残す</button>
-      
+
 　　　　<button class="btn-delete" id="deleteBookBtn">本棚から削除</button>
 
 
