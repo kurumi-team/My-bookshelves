@@ -52,6 +52,7 @@ const searchHint = document.getElementById('searchHint');
 
 const detailPanel = document.getElementById('detailPanel');
 const detailCover = document.getElementById('detailCover');
+const deleteBookBtn = document.getElementById('deleteBookBtn');
 const detailTitle = document.getElementById('detailTitle');
 const detailAuthor = document.getElementById('detailAuthor');
 const detailDate = document.getElementById('detailDate');
@@ -314,6 +315,31 @@ saveImpressionBtn.addEventListener('click', () => {
   closePanel(impressionPanel);
   renderImpressions(state.currentBookId);
 });
+
+deleteBookBtn.addEventListener('click', () => {
+  const confirmed = confirm('本当に削除しますか？');
+
+  if (!confirmed) {
+    return;
+  }
+  const books = loadBooks().filter(
+    (book) => book.id !== state.currentBookId
+  );
+
+  saveBooks(books);
+
+  const impressions = loadImpressions().filter(
+  (impression) => impression.bookId !== state.currentBookId
+);
+
+saveImpressions(impressions);
+
+  closePanel(detailPanel);
+  state.currentBookId = null;
+
+  renderShelf();
+});
+
 
 // ---------- ユーティリティ ----------
 
