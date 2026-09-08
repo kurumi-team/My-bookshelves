@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Bookshelf</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ===== ヘッダー ===== -->
+  <header class="app-header">
+    <h1 class="logo">My Bookshelf</h1>
+    <button class="btn-add" id="openSearchBtn" aria-label="本を登録する">＋ 本を登録</button>
+  </header>
+
+  <!-- ===== 棚タブ ===== -->
+  <nav class="shelf-tabs" id="shelfTabs">
+    <button class="tab is-active" data-status="unread">Unread</button>
+    <button class="tab" data-status="reading">Reading</button>
+    <button class="tab" data-status="finished">Finished</button>
+  </nav>
+
+  <!-- ===== 本棚 ===== -->
+  <main class="shelf" id="shelf" aria-live="polite">
+    <!-- 本の背表紙はJSで挿入 -->
+  </main>
+
+  <p class="empty-state" id="emptyState" hidden>
+    この棚にはまだ本がありません。「＋ 本を登録」から追加してみましょう。
+  </p>
+
+  <!-- ===== 検索パネル ===== -->
+  <section class="panel" id="searchPanel" hidden>
+    <div class="panel-inner">
+      <button class="btn-close" data-close-panel>閉じる</button>
+      <h2 class="panel-title">本を検索</h2>
+      <form id="searchForm" class="search-form">
+        <input type="text" id="searchInput" placeholder="タイトルや著者名で検索" autocomplete="off">
+        <button type="submit">検索</button>
+      </form>
+      <p class="hint" id="searchHint">読みたい本のタイトルを入力してください。</p>
+      <ul class="search-results" id="searchResults"></ul>
+    </div>
+  </section>
+
+  <!-- ===== 本の詳細パネル ===== -->
+  <section class="panel" id="detailPanel" hidden>
+    <div class="panel-inner">
+      <button class="btn-close" data-close-panel>閉じる</button>
+      <div class="detail-book">
+        <img class="detail-cover" id="detailCover" alt="">
+        <div class="detail-meta">
+          <h2 class="detail-title" id="detailTitle"></h2>
+          <p class="detail-author" id="detailAuthor"></p>
+          <p class="detail-date" id="detailDate"></p>
+        </div>
+      </div>
+
+      <div class="detail-actions" id="detailActions">
+        <button class="btn-status" data-set-status="reading">読み始める</button>
+        <button class="btn-status" data-set-status="finished">読み終えた</button>
+      </div>
+
+      <button class="btn-primary" id="leaveImpressionBtn">感想を残す</button>
+
+      <div class="impressions-block">
+        <h3>これまでの感想</h3>
+        <ul class="impression-list" id="impressionList"></ul>
+        <p class="hint" id="noImpressionHint">まだ感想が記録されていません。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 感想記録パネル（星＋ワンタップ選択肢） ===== -->
+  <section class="panel" id="impressionPanel" hidden>
+    <div class="panel-inner">
+      <button class="btn-close" data-close-panel>閉じる</button>
+      <h2 class="panel-title">感想を記録</h2>
+
+      <p class="field-label">星をつける</p>
+      <div class="star-picker" id="starPicker">
+        <button class="star" data-value="1">★</button>
+        <button class="star" data-value="2">★</button>
+        <button class="star" data-value="3">★</button>
+        <button class="star" data-value="4">★</button>
+        <button class="star" data-value="5">★</button>
+      </div>
+
+      <p class="field-label">今の気持ちに近いものは？</p>
+      <div class="tag-picker" id="tagPicker">
+        <button class="tag-option" data-tag="心に残った">心に残った</button>
+        <button class="tag-option" data-tag="学びがあった">学びがあった</button>
+        <button class="tag-option" data-tag="楽しかった">楽しかった</button>
+        <button class="tag-option" data-tag="また読み返したい">また読み返したい</button>
+        <button class="tag-option" data-tag="期待と違った">期待と違った</button>
+      </div>
+
+      <button class="btn-primary" id="saveImpressionBtn" disabled>感想を保存</button>
+    </div>
+  </section>
+
+  <script src="script.js"></script>
+</body>
+</html>
