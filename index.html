@@ -11,8 +11,6 @@
 </head>
 <body>
 
-  <div id="authGate" class="auth-gate"><p>確認中…</p></div>
-
   <!-- ===== ヘッダー ===== -->
   <header class="app-header">
     <h1 class="logo">My Bookshelf</h1>
@@ -21,7 +19,6 @@
       <button class="lang-btn" data-lang="en">EN</button>
       <button class="lang-btn" data-lang="vi">VI</button>
     </nav>
-    <button class="btn-logout" id="logoutBtn">ログアウト</button>
     <button class="btn-add" id="openSearchBtn" data-i18n="addBook" aria-label="本を登録する">＋ 本を登録</button>
   </header>
 
@@ -154,24 +151,6 @@
   </section>
 
   <script src="i18n.js"></script>
-  <script type="module">
-    import { requireAuth, logoutUser } from './auth.js';
-    import { initApp } from './script.js';
-
-    (async () => {
-      const user = await requireAuth();
-      if (user) {
-        await initApp(user.uid);
-        document.getElementById('authGate').remove();
-      }
-      // 未ログインの場合はrequireAuth内でlogin.htmlへ移動するため、
-      // ここでは何もしない（画面遷移が終わるまでauthGateで隠したままにする）
-    })();
-
-    document.getElementById('logoutBtn').addEventListener('click', async () => {
-      await logoutUser();
-      window.location.href = 'login.html';
-    });
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
