@@ -2,22 +2,8 @@
 // My Bookshelf — データ管理とロジック
 // ============================================
 
-import { auth, db } from './firebase-init.js';
-import {
-  collection,
-  doc,
-  addDoc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  getDocs,
-  query,
-  where,
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-let currentUid = null;
-let booksCache = [];
-let impressionsCache = [];
+const STORAGE_BOOKS = 'mybookshelf_books';
+const STORAGE_IMPRESSIONS = 'mybookshelf_impressions';
 
 let state = {
   activeShelf: 'unread',
@@ -30,52 +16,62 @@ let state = {
   editingImpressionId: null,
 };
 
-// ---------- Firestoreとの読み書き ----------
-// 画面描画は同期的な配列操作のままにしたいので、ログイン時に一度
-// Firestoreから全件読み込んでキャッシュ配列(booksCache / impressionsCache)を作り、
-// 以降の読み取りはこのキャッシュを見る。書き込み操作のたびに、
-// キャッシュとFirestoreの両方を更新する。
+// ---------- localStorage 読み書き ----------
 
 function loadBooks() {
-  return booksCache;
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_BOOKS)) || [];
+  } catch {
+    return [];
+  }
+}
+
+function saveBooks(books) {
+  localStorage.setItem(STORAGE_BOOKS, JSON.stringify(books));
+}
+
+// 旧バージョン（多言語対応前）は q1/q2/q3 に日本語のテキストをそのまま
+// 保存していた。日本語ツリーと照合してインデックスに変換しておくことで、
+// 過去に記録した感想も他言語に切り替えたときに正しく表示できるようにする。
+function migrateImpression(imp) {
+  if (imp.q1Index !== undefined && imp.q1Index !== null) return imp;
+  if (!imp.q1) return imp;
+
+  const jaTree = IMPRESSION_TREE_ALL.ja;
+  const q1Index = jaTree.findIndex((b) => b.label === imp.q1);
+  if (q1Index === -1) return imp;
+
+  const branch = jaTree[q1Index];
+  const q2Index = imp.q2 ? branch.options.findIndex((o) => o.label === imp.q2) : -1;
+  let q3Index = -1;
+  if (q2Index !== -1 && imp.q3) {
+    q3Index = branch.options[q2Index].options.findIndex((o) => o === imp.q3);
+  }
+
+  return {
+    ...imp,
+    q1Index,
+    q2Index: q2Index === -1 ? null : q2Index,
+    q3Index: q3Index === -1 ? null : q3Index,
+  };
 }
 
 function loadImpressions() {
-  return impressionsCache;
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_IMPRESSIONS)) || [];
+    return raw.map(migrateImpression);
+  } catch {
+    return [];
+  }
+}
+
+function saveImpressions(impressions) {
+  localStorage.setItem(STORAGE_IMPRESSIONS, JSON.stringify(impressions));
 }
 
 function generateId() {
   return `imp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
-
-// ログイン確認後にindex.htmlから呼び出す初期化処理。
-// ユーザーの本棚・感想データをFirestoreから読み込んでから、最初の描画を行う。
-export async function initApp(uid) {
-  currentUid = uid;
-
-  const [booksSnap, impressionsSnap] = await Promise.all([
-    getDocs(query(collection(db, 'userBooks'), where('uid', '==', uid))),
-    getDocs(query(collection(db, 'impressions'), where('uid', '==', uid))),
-  ]);
-
-  booksCache = booksSnap.docs.map((d) => {
-    const data = d.data();
-    return {
-      id: data.id,
-      title: data.title,
-      author: data.author,
-      cover: data.cover,
-      status: data.status,
-      addedDate: data.addedDate,
-    };
-  });
-
-  impressionsCache = impressionsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-
-  applyStaticTranslations();
-  renderHome();
-}
-
 
 // ---------- 要素参照 ----------
 
@@ -368,8 +364,8 @@ function renderSearchResults(items) {
 
     const btn = li.querySelector('.btn-signup');
     if (!alreadyAdded) {
-      btn.addEventListener('click', async () => {
-        await registerBook(item.id, info);
+      btn.addEventListener('click', () => {
+        registerBook(item.id, info);
         btn.disabled = true;
         btn.textContent = t('addedLabel');
       });
@@ -379,22 +375,17 @@ function renderSearchResults(items) {
   });
 }
 
-async function registerBook(id, info) {
-  const book = {
+function registerBook(id, info) {
+  const books = loadBooks();
+  books.push({
     id,
     title: info.title || 'タイトル不明',
     author: (info.authors || []).join(', ') || '著者不明',
     cover: info.imageLinks?.thumbnail || '',
     status: 'unread',
     addedDate: new Date().toISOString(),
-  };
-
-  await setDoc(doc(db, 'userBooks', `${currentUid}_${id}`), {
-    uid: currentUid,
-    ...book,
   });
-
-  booksCache.push(book);
+  saveBooks(books);
 
   if (state.activeShelf === 'unread') {
     renderShelf();
@@ -422,22 +413,21 @@ function openDetail(bookId) {
   openPanel(detailPanel);
 }
 
-detailActions.addEventListener('click', async (e) => {
+detailActions.addEventListener('click', (e) => {
   const btn = e.target.closest('.btn-status');
   if (!btn) return;
 
-  const book = booksCache.find((b) => b.id === state.currentBookId);
+  const books = loadBooks();
+  const book = books.find((b) => b.id === state.currentBookId);
   if (!book) return;
 
-  const newStatus = btn.dataset.setStatus;
-  book.status = newStatus;
+  book.status = btn.dataset.setStatus;
+  saveBooks(books);
 
   detailActions.querySelectorAll('.btn-status').forEach((b) => {
     b.classList.toggle('is-current', b === btn);
   });
   renderShelf();
-
-  await updateDoc(doc(db, 'userBooks', `${currentUid}_${book.id}`), { status: newStatus });
 });
 
 function renderImpressions(bookId) {
@@ -481,7 +471,7 @@ function renderImpressions(bookId) {
   });
 }
 
-impressionListEl.addEventListener('click', async (e) => {
+impressionListEl.addEventListener('click', (e) => {
   const editBtn = e.target.closest('[data-edit-id]');
   const deleteBtn = e.target.closest('[data-delete-id]');
 
@@ -492,10 +482,9 @@ impressionListEl.addEventListener('click', async (e) => {
   if (deleteBtn) {
     const ok = window.confirm(t('confirmDeleteImpression'));
     if (!ok) return;
-    const impId = deleteBtn.dataset.deleteId;
-    impressionsCache = impressionsCache.filter((imp) => imp.id !== impId);
+    const impressions = loadImpressions().filter((imp) => imp.id !== deleteBtn.dataset.deleteId);
+    saveImpressions(impressions);
     renderImpressions(state.currentBookId);
-    await deleteDoc(doc(db, 'impressions', impId));
   }
 });
 
@@ -682,56 +671,62 @@ freeTextInput.addEventListener('input', () => {
   freeTextCount.textContent = String(freeTextInput.value.length);
 });
 
-saveImpressionBtn.addEventListener('click', async () => {
+saveImpressionBtn.addEventListener('click', () => {
+  const impressions = loadImpressions();
   const note = freeTextInput.value.trim().slice(0, 50);
-  const bookId = state.currentBookId;
-  const payload = {
-    stars: state.pendingStars,
-    q1Index: state.pendingQ1Index,
-    q2Index: state.pendingQ2Index,
-    q3Index: state.pendingQ3Index,
-    note,
-  };
-
-  saveImpressionBtn.disabled = true;
 
   if (state.editingImpressionId) {
-    await updateDoc(doc(db, 'impressions', state.editingImpressionId), payload);
-    const target = impressionsCache.find((imp) => imp.id === state.editingImpressionId);
-    if (target) Object.assign(target, payload);
+    const target = impressions.find((imp) => imp.id === state.editingImpressionId);
+    if (target) {
+      target.stars = state.pendingStars;
+      target.q1Index = state.pendingQ1Index;
+      target.q2Index = state.pendingQ2Index;
+      target.q3Index = state.pendingQ3Index;
+      delete target.q1;
+      delete target.q2;
+      delete target.q3;
+      target.note = note;
+    }
   } else {
-    const fullPayload = { ...payload, uid: currentUid, bookId, date: new Date().toISOString() };
-    const docRef = await addDoc(collection(db, 'impressions'), fullPayload);
-    impressionsCache.push({ id: docRef.id, ...fullPayload });
+    impressions.push({
+      id: generateId(),
+      bookId: state.currentBookId,
+      stars: state.pendingStars,
+      q1Index: state.pendingQ1Index,
+      q2Index: state.pendingQ2Index,
+      q3Index: state.pendingQ3Index,
+      note,
+      date: new Date().toISOString(),
+    });
   }
 
+  saveImpressions(impressions);
   closePanel(impressionPanel);
-  renderImpressions(bookId);
+  renderImpressions(state.currentBookId);
 });
 
-deleteBookBtn.addEventListener('click', async () => {
+deleteBookBtn.addEventListener('click', () => {
   const confirmed = confirm(t('confirmDeleteBook'));
 
   if (!confirmed) {
     return;
   }
+  const books = loadBooks().filter(
+    (book) => book.id !== state.currentBookId
+  );
 
-  const bookId = state.currentBookId;
+  saveBooks(books);
 
-  booksCache = booksCache.filter((book) => book.id !== bookId);
-  const removedImpressionIds = impressionsCache
-    .filter((imp) => imp.bookId === bookId)
-    .map((imp) => imp.id);
-  impressionsCache = impressionsCache.filter((imp) => imp.bookId !== bookId);
+  const impressions = loadImpressions().filter(
+    (impression) => impression.bookId !== state.currentBookId
+  );
+
+  saveImpressions(impressions);
 
   closePanel(detailPanel);
   state.currentBookId = null;
-  renderShelf();
 
-  await deleteDoc(doc(db, 'userBooks', `${currentUid}_${bookId}`));
-  await Promise.all(
-    removedImpressionIds.map((impId) => deleteDoc(doc(db, 'impressions', impId)))
-  );
+  renderShelf();
 });
 
 
@@ -742,3 +737,8 @@ function escapeHtml(str) {
   div.textContent = str;
   return div.innerHTML;
 }
+
+// ---------- 初期描画 ----------
+
+applyStaticTranslations();
+renderHome();
