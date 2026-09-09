@@ -81,6 +81,8 @@ const shelfTabsEl = document.getElementById('shelfTabs');
 
 const homeDashboard = document.getElementById('homeDashboard');
 const backHomeBtn = document.getElementById('backHomeBtn');
+const recentBooksList = document.getElementById('recentBooksList');
+const noRecentBooksEl = document.getElementById('noRecentBooks');
 
 const unreadCount = document.getElementById('unreadCount');
 const readingCount = document.getElementById('readingCount');
@@ -194,6 +196,50 @@ function renderHome() {
   unreadCount.textContent = formatCount(unreadBooks.length);
   readingCount.textContent = formatCount(readingBooks.length);
   finishedCount.textContent = formatCount(finishedBooks.length);
+
+  renderRecentBooks();
+}
+
+// 本ごとに最新の感想日付を1つだけ求め、新しい順に直近5冊を表示する。
+// クリックするとその本の詳細画面が開く。
+function renderRecentBooks() {
+  const books = loadBooks();
+  const impressions = loadImpressions();
+
+  // 本ごとに、一番新しい感想の日付だけを残す
+  const latestDateByBook = new Map();
+  impressions.forEach((imp) => {
+    const current = latestDateByBook.get(imp.bookId);
+    if (!current || new Date(imp.date) > new Date(current)) {
+      latestDateByBook.set(imp.bookId, imp.date);
+    }
+  });
+
+  const recentBooks = [...latestDateByBook.entries()]
+    .map(([bookId, date]) => ({ book: books.find((b) => b.id === bookId), date }))
+    .filter((entry) => entry.book)
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 5);
+
+  recentBooksList.innerHTML = '';
+
+  if (recentBooks.length === 0) {
+    noRecentBooksEl.hidden = false;
+    return;
+  }
+
+  noRecentBooksEl.hidden = true;
+
+  recentBooks.forEach(({ book, date }) => {
+    const li = document.createElement('li');
+    li.className = 'recent-book-item';
+    li.innerHTML = `
+      <span class="recent-book-date">${formatDate(date)}</span>
+      <span class="recent-book-title">${escapeHtml(book.title)}</span>
+    `;
+    li.addEventListener('click', () => openDetail(book.id));
+    recentBooksList.appendChild(li);
+  });
 }
 
 document.querySelectorAll('[data-open-shelf]').forEach((button) => {
