@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>アカウント作成 | My Bookshelf</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <main class="auth-page">
+    <div class="auth-card">
+      <h1 class="logo auth-logo">My Bookshelf</h1>
+      <h2 class="auth-title">アカウント作成</h2>
+
+      <form id="signupForm" class="auth-form">
+        <label class="field-label" for="signupUsername">ユーザー名</label>
+        <input type="text" id="signupUsername" autocomplete="username" maxlength="30" required>
+        <p class="hint">他の人に表示される名前です。後で共有された感想の投稿者名として使われます。</p>
+
+        <label class="field-label" for="signupEmail">メールアドレス</label>
+        <input type="email" id="signupEmail" autocomplete="email" required>
+
+        <label class="field-label" for="signupPassword">パスワード</label>
+        <input type="password" id="signupPassword" autocomplete="new-password" minlength="6" required>
+        <p class="hint">6文字以上で入力してください。</p>
+
+        <p class="auth-error" id="signupError" hidden></p>
+
+        <button type="submit" class="btn-primary" id="signupSubmit">アカウントを作成</button>
+      </form>
+
+      <p class="auth-switch">
+        すでにアカウントをお持ちの方は
+        <a href="login.html">こちら</a>
+      </p>
+    </div>
+  </main>
+
+  <script type="module">
+    import { registerUser, redirectIfLoggedIn } from './auth.js';
+
+    redirectIfLoggedIn();
+
+    const form = document.getElementById('signupForm');
+    const errorEl = document.getElementById('signupError');
+    const submitBtn = document.getElementById('signupSubmit');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorEl.hidden = true;
+      submitBtn.disabled = true;
+      submitBtn.textContent = '作成中…';
+
+      const username = document.getElementById('signupUsername').value.trim();
+      const email = document.getElementById('signupEmail').value.trim();
+      const password = document.getElementById('signupPassword').value;
+
+      try {
+        await registerUser(username, email, password);
+        // 要件: 作成したらログイン画面に移動し、メールアドレスとパスワードで
+        // 改めてログインしてもらう（自動ログインはさせない）
+        window.location.href = 'login.html?created=1';
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.hidden = false;
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'アカウントを作成';
+      }
+    });
+  </script>
+</body>
+</html>
