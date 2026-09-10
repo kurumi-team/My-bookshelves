@@ -484,6 +484,7 @@ button {
 }
 
 .impression-stars { color: var(--gold); letter-spacing: 1px; font-size: 0.9rem; }
+.impression-author { font-size: 0.85rem; font-weight: 600; color: var(--ink); margin: 0 0 4px; }
 .impression-tag { font-size: 0.88rem; margin: 4px 0 2px; }
 .impression-path { font-size: 0.8rem; color: var(--ink-soft); margin: 0 0 2px; }
 .impression-note { font-size: 0.85rem; margin: 4px 0 2px; padding: 6px 8px; background: var(--paper-deep); border-radius: var(--radius); }
@@ -495,7 +496,7 @@ button {
   margin-top: 8px;
 }
 
-.btn-edit, .btn-delete {
+.btn-edit, .btn-delete, .btn-share {
   background: none;
   border: 1px solid var(--line);
   padding: 5px 10px;
@@ -506,6 +507,30 @@ button {
 
 .btn-delete:hover { border-color: var(--ribbon); color: var(--ribbon); }
 .btn-edit:hover { border-color: var(--gold); color: var(--gold); }
+.btn-share:hover { border-color: var(--ink); color: var(--ink); }
+
+.btn-share.is-shared {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.btn-secondary {
+  width: 100%;
+  background: #fff;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  padding: 12px;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+
+.btn-secondary:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
 
 /* ===== 感想記録パネル ===== */
 .field-label {
