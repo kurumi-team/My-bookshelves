@@ -11,6 +11,8 @@
 </head>
 <body>
 
+  <div id="authGate" class="auth-gate"><p>確認中…</p></div>
+
   <!-- ===== ヘッダー ===== -->
   <header class="app-header">
     <h1 class="logo">My Bookshelf</h1>
@@ -19,6 +21,16 @@
       <button class="lang-btn" data-lang="en">EN</button>
       <button class="lang-btn" data-lang="vi">VI</button>
     </nav>
+    <div class="profile-menu">
+      <button class="profile-icon-btn" id="profileBtn" aria-label="アカウント">
+        <svg class="profile-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="9.5" stroke="currentColor" stroke-width="1.4"/>
+          <circle cx="12" cy="9.8" r="3.2" fill="currentColor"/>
+          <path d="M5.3 18.6c1.4-3 3.9-4.5 6.7-4.5s5.3 1.5 6.7 4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+        </svg>
+      </button>
+    </div>
+    <button class="btn-logout" id="logoutBtn">ログアウト</button>
     <button class="btn-add" id="openSearchBtn" data-i18n="addBook" aria-label="本を登録する">＋ 本を登録</button>
   </header>
 
@@ -132,6 +144,8 @@
 
       <button class="btn-primary" id="leaveImpressionBtn" data-i18n="leaveImpression">感想を残す</button>
 
+      <button class="btn-secondary" id="viewSharedBtn">他の人の感想を見る</button>
+
 　　　　<button class="btn-delete" id="deleteBookBtn" data-i18n="deleteBook">本棚から削除</button>
 
 
@@ -179,7 +193,106 @@
     </div>
   </section>
 
+  <!-- ===== 他の人が共有した感想パネル ===== -->
+  <section class="panel" id="sharedImpressionsPanel" hidden>
+    <div class="panel-inner">
+      <button class="btn-close" data-close-panel>閉じる</button>
+      <h2 class="panel-title">他の人の感想</h2>
+      <ul class="impression-list" id="sharedImpressionList"></ul>
+      <p class="hint" id="noSharedImpressionHint" hidden>まだ共有されている感想がありません。</p>
+    </div>
+  </section>
+
+  <!-- ===== アカウントパネル（ユーザー名の表示・変更） ===== -->
+  <section class="panel" id="usernamePanel" hidden>
+    <div class="panel-inner">
+      <button class="btn-close" data-close-panel>閉じる</button>
+      <h2 class="panel-title">アカウント</h2>
+
+      <p class="current-username">現在のユーザー名：<strong id="currentUsernameText"></strong></p>
+
+      <label class="field-label" for="newUsernameInput">新しいユーザー名</label>
+      <input type="text" id="newUsernameInput" class="username-input" maxlength="30">
+      <p class="hint">他の人に表示される名前です。共有された感想の投稿者名としても使われます。</p>
+
+      <p class="auth-error" id="usernameError" hidden></p>
+
+      <button class="btn-primary" id="saveUsernameBtn">保存</button>
+    </div>
+  </section>
+
   <script src="i18n.js"></script>
-  <script src="script.js"></script>
+  <script type="module">
+    import { requireAuth, logoutUser, getUserProfile, changeUsername } from './auth.js';
+    import { initApp } from './script.js';
+
+    (async () => {
+      try {
+        const user = await requireAuth();
+        if (user) {
+          await initApp(user.uid);
+          document.getElementById('authGate').remove();
+
+          // ---------- ユーザー名の表示・変更 ----------
+          let profile = await getUserProfile(user.uid);
+          const profileBtn = document.getElementById('profileBtn');
+          const usernamePanel = document.getElementById('usernamePanel');
+          const currentUsernameText = document.getElementById('currentUsernameText');
+          const newUsernameInput = document.getElementById('newUsernameInput');
+          const usernameError = document.getElementById('usernameError');
+          const saveUsernameBtn = document.getElementById('saveUsernameBtn');
+
+          // アイコンを押すと、現在のユーザー名を表示しつつ変更パネルを開く
+          profileBtn.addEventListener('click', () => {
+            currentUsernameText.textContent = profile ? profile.username : '';
+            newUsernameInput.value = profile ? profile.username : '';
+            usernameError.hidden = true;
+            usernamePanel.hidden = false;
+          });
+
+          saveUsernameBtn.addEventListener('click', async () => {
+            const newName = newUsernameInput.value.trim();
+            usernameError.hidden = true;
+
+            if (!newName) {
+              usernameError.textContent = 'ユーザー名を入力してください。';
+              usernameError.hidden = false;
+              return;
+            }
+
+            saveUsernameBtn.disabled = true;
+            try {
+              await changeUsername(user.uid, newName);
+              profile = { ...profile, username: newName, usernameKey: newName.trim().toLowerCase() };
+              currentUsernameText.textContent = newName;
+              usernamePanel.hidden = true;
+            } catch (err) {
+              usernameError.textContent = err.message;
+              usernameError.hidden = false;
+            } finally {
+              saveUsernameBtn.disabled = false;
+            }
+          });
+        }
+        // 未ログインの場合はrequireAuth内でlogin.htmlへ移動するため、
+        // ここでは何もしない（画面遷移が終わるまでauthGateで隠したままにする）
+      } catch (err) {
+        console.error('アプリの初期化に失敗しました:', err);
+        const gate = document.getElementById('authGate');
+        gate.innerHTML = `
+          <div style="text-align:center; padding: 0 24px;">
+            <p>読み込みに失敗しました。</p>
+            <p style="font-size: 0.8rem; color: #8C3B34; margin-top: 8px;">${err.message || err}</p>
+            <button onclick="location.reload()" style="margin-top: 16px; padding: 8px 16px; border-radius: 4px; border: 1px solid #D9CFB7; background: #fff; cursor: pointer;">再読み込み</button>
+          </div>
+        `;
+      }
+    })();
+
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await logoutUser();
+      window.location.href = 'login.html';
+    });
+  </script>
 </body>
 </html>
