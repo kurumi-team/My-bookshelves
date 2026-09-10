@@ -74,8 +74,14 @@ export async function initApp(uid) {
   impressionsCache = impressionsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
   applyStaticTranslations();
-  await refreshRecommendations();
   renderHome();
+
+  // おすすめの計算は画面表示をブロックしないよう、バックグラウンドで実行する
+  refreshRecommendations().then(() => {
+    if (!homeDashboard.hidden) {
+      renderRecommendationsList();
+    }
+  });
 }
 
 
@@ -491,17 +497,18 @@ async function computeRecommendations() {
   const myBookIdSet = new Set(booksCache.map((b) => b.id));
 
   // 趣味が近い人（自分が好きな本を、同じく高く評価している人）を集める
-  const similarUids = new Set();
-  for (const bookId of myLikedBookIds) {
-    let snap;
-    try {
-      snap = await getDocs(
+  // 本ごとの問い合わせは、順番に待たず並列で実行する
+  const likedBookSnaps = await Promise.all(
+    myLikedBookIds.map((bookId) =>
+      getDocs(
         query(collection(db, 'impressions'), where('bookId', '==', bookId), where('shared', '==', true))
-      );
-    } catch {
-      continue;
-    }
+      ).catch(() => null)
+    )
+  );
 
+  const similarUids = new Set();
+  likedBookSnaps.forEach((snap) => {
+    if (!snap) return;
     const byUser = new Map();
     snap.docs.forEach((d) => {
       const data = d.data();
@@ -509,27 +516,27 @@ async function computeRecommendations() {
       if (!byUser.has(data.uid)) byUser.set(data.uid, []);
       byUser.get(data.uid).push(data.stars);
     });
-
     byUser.forEach((starsArr, uid) => {
       const avg = starsArr.reduce((a, b) => a + b, 0) / starsArr.length;
       if (avg >= 4) similarUids.add(uid);
     });
-  }
+  });
 
   if (similarUids.size === 0) return [];
 
   // 趣味が近い人たちが高評価している、自分がまだ持っていない本を集める
-  const candidateScores = new Map();
-  for (const uid of similarUids) {
-    let snap;
-    try {
-      snap = await getDocs(
+  // こちらもユーザーごとの問い合わせを並列で実行する
+  const userSnaps = await Promise.all(
+    [...similarUids].map((uid) =>
+      getDocs(
         query(collection(db, 'impressions'), where('uid', '==', uid), where('shared', '==', true))
-      );
-    } catch {
-      continue;
-    }
+      ).catch(() => null)
+    )
+  );
 
+  const candidateScores = new Map();
+  userSnaps.forEach((snap) => {
+    if (!snap) return;
     const byBook = new Map();
     snap.docs.forEach((d) => {
       const data = d.data();
@@ -537,7 +544,6 @@ async function computeRecommendations() {
       if (!byBook.has(data.bookId)) byBook.set(data.bookId, []);
       byBook.get(data.bookId).push(data.stars);
     });
-
     byBook.forEach((starsArr, bookId) => {
       const avg = starsArr.reduce((a, b) => a + b, 0) / starsArr.length;
       if (avg < 4) return;
@@ -546,28 +552,24 @@ async function computeRecommendations() {
       entry.count += 1;
       entry.avgSum += avg;
     });
-  }
+  });
 
   const ranked = [...candidateScores.entries()]
     .map(([bookId, { count, avgSum }]) => ({ bookId, count, avgAvg: avgSum / count }))
     .sort((a, b) => b.count - a.count || b.avgAvg - a.avgAvg)
     .slice(0, 5);
 
-  const results = [];
-  for (const { bookId } of ranked) {
-    try {
-      const res = await fetch(
-        `https://www.googleapis.com/books/v1/volumes/${bookId}?key=${GOOGLE_BOOKS_API_KEY}`
-      );
-      const data = await res.json();
-      if (data.volumeInfo) {
-        results.push({ id: bookId, info: data.volumeInfo });
-      }
-    } catch {
-      // 取得に失敗した本はスキップする
-    }
-  }
-  return results;
+  // Google Books APIへの問い合わせも並列で実行する
+  const bookInfoResults = await Promise.all(
+    ranked.map(({ bookId }) =>
+      fetch(`https://www.googleapis.com/books/v1/volumes/${bookId}?key=${GOOGLE_BOOKS_API_KEY}`)
+        .then((res) => res.json())
+        .then((data) => (data.volumeInfo ? { id: bookId, info: data.volumeInfo } : null))
+        .catch(() => null)
+    )
+  );
+
+  return bookInfoResults.filter(Boolean);
 }
 
 async function refreshRecommendations() {
