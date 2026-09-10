@@ -10,6 +10,7 @@ import {
   setDoc,
   updateDoc,
   deleteDoc,
+  getDoc,
   getDocs,
   query,
   where,
@@ -107,6 +108,10 @@ const detailDate = document.getElementById('detailDate');
 const detailActions = document.getElementById('detailActions');
 const impressionListEl = document.getElementById('impressionList');
 const noImpressionHint = document.getElementById('noImpressionHint');
+const viewSharedBtn = document.getElementById('viewSharedBtn');
+const sharedImpressionsPanel = document.getElementById('sharedImpressionsPanel');
+const sharedImpressionList = document.getElementById('sharedImpressionList');
+const noSharedImpressionHint = document.getElementById('noSharedImpressionHint');
 
 const impressionPanel = document.getElementById('impressionPanel');
 const impressionPanelTitle = document.getElementById('impressionPanelTitle');
@@ -473,6 +478,7 @@ function renderImpressions(bookId) {
       ${imp.note ? `<p class="impression-note">${escapeHtml(imp.note)}</p>` : ''}
       <p class="impression-date">${formatDate(imp.date)}</p>
       <div class="impression-item-actions">
+        <button class="btn-share ${imp.shared ? 'is-shared' : ''}" data-share-id="${imp.id}">${imp.shared ? '共有中' : '共有する'}</button>
         <button class="btn-edit" data-edit-id="${imp.id}">${t('edit')}</button>
         <button class="btn-delete" data-delete-id="${imp.id}">${t('delete')}</button>
       </div>
@@ -484,6 +490,7 @@ function renderImpressions(bookId) {
 impressionListEl.addEventListener('click', async (e) => {
   const editBtn = e.target.closest('[data-edit-id]');
   const deleteBtn = e.target.closest('[data-delete-id]');
+  const shareBtn = e.target.closest('[data-share-id]');
 
   if (editBtn) {
     openImpressionEditor(editBtn.dataset.editId);
@@ -497,12 +504,89 @@ impressionListEl.addEventListener('click', async (e) => {
     renderImpressions(state.currentBookId);
     await deleteDoc(doc(db, 'impressions', impId));
   }
+
+  if (shareBtn) {
+    const impId = shareBtn.dataset.shareId;
+    const imp = impressionsCache.find((i) => i.id === impId);
+    if (!imp) return;
+
+    const newShared = !imp.shared;
+    shareBtn.disabled = true;
+    try {
+      await updateDoc(doc(db, 'impressions', impId), { shared: newShared });
+      imp.shared = newShared;
+      renderImpressions(state.currentBookId);
+    } finally {
+      shareBtn.disabled = false;
+    }
+  }
 });
 
 // ---------- 感想を記録する（星→Q1→Q2→Q3の分岐） ----------
 
 document.getElementById('leaveImpressionBtn').addEventListener('click', () => {
   startImpressionFlow();
+});
+
+// ---------- 他の人が共有した感想を見る ----------
+// ユーザー名は毎回読み込むと無駄が多いので、一度取得したらキャッシュしておく。
+const profileCache = new Map();
+
+async function getProfileCached(uid) {
+  if (profileCache.has(uid)) return profileCache.get(uid);
+  const snap = await getDoc(doc(db, 'users', uid));
+  const data = snap.exists() ? snap.data() : null;
+  profileCache.set(uid, data);
+  return data;
+}
+
+async function renderSharedImpressions(bookId) {
+  sharedImpressionList.innerHTML = '';
+  noSharedImpressionHint.hidden = true;
+
+  const snap = await getDocs(
+    query(collection(db, 'impressions'), where('bookId', '==', bookId), where('shared', '==', true))
+  );
+
+  const others = snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .filter((imp) => imp.uid !== currentUid)
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  if (others.length === 0) {
+    noSharedImpressionHint.hidden = false;
+    return;
+  }
+
+  const tree = getTree();
+
+  for (const imp of others) {
+    const profile = await getProfileCached(imp.uid);
+    const username = profile ? profile.username : '（不明なユーザー）';
+
+    const branch = imp.q1Index !== null && imp.q1Index !== undefined ? tree[imp.q1Index] : null;
+    const q2 = branch && imp.q2Index !== null && imp.q2Index !== undefined ? branch.options[imp.q2Index] : null;
+    const q3 = q2 && imp.q3Index !== null && imp.q3Index !== undefined ? q2.options[imp.q3Index] : null;
+    const q1Label = branch ? branch.label : '';
+    const pathText = [q2 ? q2.label : '', q3 || ''].filter(Boolean).join(' ／ ');
+
+    const li = document.createElement('li');
+    li.className = 'impression-item';
+    li.innerHTML = `
+      <p class="impression-author">${escapeHtml(username)}</p>
+      <p class="impression-stars">${'★'.repeat(imp.stars)}${'☆'.repeat(5 - imp.stars)}</p>
+      <p class="impression-tag">${escapeHtml(q1Label)}</p>
+      ${pathText ? `<p class="impression-path">${escapeHtml(pathText)}</p>` : ''}
+      ${imp.note ? `<p class="impression-note">${escapeHtml(imp.note)}</p>` : ''}
+      <p class="impression-date">${formatDate(imp.date)}</p>
+    `;
+    sharedImpressionList.appendChild(li);
+  }
+}
+
+viewSharedBtn.addEventListener('click', async () => {
+  openPanel(sharedImpressionsPanel);
+  await renderSharedImpressions(state.currentBookId);
 });
 
 function rebuildQ1Picker() {
@@ -700,7 +784,7 @@ saveImpressionBtn.addEventListener('click', async () => {
     const target = impressionsCache.find((imp) => imp.id === state.editingImpressionId);
     if (target) Object.assign(target, payload);
   } else {
-    const fullPayload = { ...payload, uid: currentUid, bookId, date: new Date().toISOString() };
+    const fullPayload = { ...payload, uid: currentUid, bookId, date: new Date().toISOString(), shared: false };
     const docRef = await addDoc(collection(db, 'impressions'), fullPayload);
     impressionsCache.push({ id: docRef.id, ...fullPayload });
   }

@@ -115,6 +115,8 @@
 
       <button class="btn-primary" id="leaveImpressionBtn" data-i18n="leaveImpression">感想を残す</button>
 
+      <button class="btn-secondary" id="viewSharedBtn">他の人の感想を見る</button>
+
 　　　　<button class="btn-delete" id="deleteBookBtn" data-i18n="deleteBook">本棚から削除</button>
 
 
@@ -159,6 +161,16 @@
       </div>
 
       <button class="btn-primary" id="saveImpressionBtn" data-i18n="saveImpression" disabled>感想を保存</button>
+    </div>
+  </section>
+
+  <!-- ===== 他の人が共有した感想パネル ===== -->
+  <section class="panel" id="sharedImpressionsPanel" hidden>
+    <div class="panel-inner">
+      <button class="btn-close" data-close-panel>閉じる</button>
+      <h2 class="panel-title">他の人の感想</h2>
+      <ul class="impression-list" id="sharedImpressionList"></ul>
+      <p class="hint" id="noSharedImpressionHint" hidden>まだ共有されている感想がありません。</p>
     </div>
   </section>
 
