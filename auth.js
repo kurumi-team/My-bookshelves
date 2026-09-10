@@ -13,6 +13,7 @@ import {
   doc,
   getDoc,
   setDoc,
+  updateDoc,
   deleteDoc,
   runTransaction,
   serverTimestamp,
@@ -21,7 +22,7 @@ import {
 // ---------- ユーザー名の正規化 ----------
 // 大文字・小文字だけが違う名前を別名扱いにしないよう、
 // 重複チェック・保存のキーには小文字化した値を使う。
-function normalizeUsername(username) {
+export function normalizeUsername(username) {
   return username.trim().toLowerCase();
 }
 
@@ -98,6 +99,72 @@ export async function loginUser(email, password) {
 // ---------- ログアウト ----------
 export async function logoutUser() {
   await signOut(auth);
+}
+
+// ---------- プロフィール取得（ユーザー名の表示用） ----------
+export async function getUserProfile(uid) {
+  const snap = await getDoc(doc(db, "users", uid));
+  return snap.exists() ? snap.data() : null;
+}
+
+// ---------- ユーザー名の変更 ----------
+// 新規登録と同じ考え方で、新しいユーザー名を先に「予約」してから
+// プロフィールを更新し、最後に古いユーザー名を解放する。
+export async function changeUsername(uid, newUsername) {
+  const newKey = normalizeUsername(newUsername);
+
+  if (!newKey) {
+    throw new Error("ユーザー名を入力してください。");
+  }
+
+  const profile = await getUserProfile(uid);
+  if (!profile) {
+    throw new Error("プロフィールが見つかりませんでした。");
+  }
+
+  const oldKey = profile.usernameKey;
+
+  // 表示だけの違い（大文字・小文字や前後の空白など）なら、
+  // 重複チェックをせず表示名だけ更新する
+  if (newKey === oldKey) {
+    await updateDoc(doc(db, "users", uid), { username: newUsername.trim() });
+    await updateDoc(doc(db, "usernames", oldKey), { displayName: newUsername.trim() }).catch(() => {});
+    return;
+  }
+
+  const newRef = doc(db, "usernames", newKey);
+
+  // 新しいユーザー名を予約する（同時変更による重複を防ぐ）
+  await runTransaction(db, async (transaction) => {
+    const existing = await transaction.get(newRef);
+    if (existing.exists()) {
+      throw new Error("USERNAME_TAKEN");
+    }
+    transaction.set(newRef, {
+      displayName: newUsername.trim(),
+      uid,
+      createdAt: serverTimestamp(),
+    });
+  }).catch((err) => {
+    if (err.message === "USERNAME_TAKEN") {
+      throw new Error("このユーザー名はすでに使われています。");
+    }
+    throw err;
+  });
+
+  try {
+    // プロフィールを新しいユーザー名に更新
+    await updateDoc(doc(db, "users", uid), {
+      username: newUsername.trim(),
+      usernameKey: newKey,
+    });
+    // 古いユーザー名の予約を解放
+    await deleteDoc(doc(db, "usernames", oldKey));
+  } catch (err) {
+    // 途中で失敗したら、新しく予約したユーザー名を解放してロールバック
+    await deleteDoc(newRef).catch(() => {});
+    throw err;
+  }
 }
 
 // ---------- Firebaseのエラーコードを日本語メッセージに変換 ----------

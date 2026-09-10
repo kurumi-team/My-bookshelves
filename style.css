@@ -596,3 +596,184 @@ button {
 [hidden] {
   display: none !important;
 }
+
+/* ===== ログイン・アカウント作成ページ ===== */
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.auth-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 32px 28px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: 0 4px 16px rgba(35, 41, 31, 0.08);
+}
+
+.auth-logo {
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.auth-title {
+  text-align: center;
+  font-size: 1.1rem;
+  color: var(--ink-soft);
+  font-weight: 500;
+  margin-bottom: 24px;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-form input {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: #fff;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+
+.auth-form input:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+
+.auth-form .hint {
+  margin: 2px 0 12px;
+}
+
+.auth-form .btn-primary {
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+
+.auth-form .btn-primary:disabled {
+  background: var(--line);
+  color: var(--ink-soft);
+}
+
+.auth-error {
+  color: var(--ribbon);
+  font-size: 0.85rem;
+  margin: 4px 0 0;
+}
+
+.auth-error.auth-success {
+  color: #4A6B45;
+}
+
+.auth-switch {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  margin: 20px 0 0;
+}
+
+.auth-switch a {
+  color: var(--ribbon);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.auth-switch a:hover {
+  text-decoration: underline;
+}
+
+/* ===== ヘッダーのログアウトボタン ===== */
+.btn-logout {
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+  padding: 6px 12px;
+  border-radius: var(--radius);
+  font-size: 0.8rem;
+}
+
+.btn-logout:hover {
+  border-color: var(--ribbon);
+  color: var(--ribbon);
+}
+
+/* ===== ユーザー名の表示・変更（アイコン＋パネル） ===== */
+.profile-menu {
+  position: relative;
+  display: flex;
+}
+
+.profile-icon-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-soft);
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.profile-icon-btn:hover {
+  color: var(--ink);
+  background: var(--paper-deep);
+}
+
+.profile-icon {
+  width: 26px;
+  height: 26px;
+  display: block;
+}
+
+.current-username {
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  margin: 0 0 18px;
+}
+
+.current-username strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.username-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: #fff;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+
+.username-input:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+
+/* ===== ログイン確認中のオーバーレイ ===== */
+.auth-gate {
+  position: fixed;
+  inset: 0;
+  background: var(--paper);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
