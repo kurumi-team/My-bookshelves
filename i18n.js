@@ -112,6 +112,7 @@ const UI_TEXT = {
     authorPlaceholder: '著者名',
     keywordLabel: 'キーワード',
     keywordPlaceholder: '覚えているフレーズ・キーワード',
+    recommendedBooks: 'おすすめの本'
     
   },
   en: {
@@ -179,6 +180,7 @@ const UI_TEXT = {
     authorPlaceholder: 'Author name',
     keywordLabel: 'Keyword',
     keywordPlaceholder: 'A phrase or keyword you remember',
+    recommendedBooks: 'Recommended Books'
   },
   vi: {
       // vi 
@@ -245,6 +247,7 @@ const UI_TEXT = {
     authorPlaceholder: 'Tên tác giả',
     keywordLabel: 'Từ khóa',
     keywordPlaceholder: 'Cụm từ hoặc từ khóa bạn nhớ',
+    recommendedBooks: 'Sách đề xuất'
   },
 };
 
