@@ -321,7 +321,8 @@ button {
 /* ===== 検索フォーム ===== */
 .search-form {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 12px;
   margin-bottom: 10px;
 }
 
@@ -342,6 +343,13 @@ button {
   border-radius: var(--radius);
   font-size: 0.9rem;
 }
+.search-form button:disabled {
+  background: #b8b8b8;
+  color: #666;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
 
 .hint {
   color: var(--ink-soft);
