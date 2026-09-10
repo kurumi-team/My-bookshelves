@@ -74,6 +74,7 @@ export async function initApp(uid) {
   impressionsCache = impressionsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
   applyStaticTranslations();
+  await refreshRecommendations();
   renderHome();
 }
 
@@ -88,6 +89,8 @@ const homeDashboard = document.getElementById('homeDashboard');
 const backHomeBtn = document.getElementById('backHomeBtn');
 const recentBooksList = document.getElementById('recentBooksList');
 const noRecentBooksEl = document.getElementById('noRecentBooks');
+const recommendedList = document.getElementById('recommendedList');
+const noRecommendedHint = document.getElementById('noRecommendedHint');
 
 const unreadCount = document.getElementById('unreadCount');
 const readingCount = document.getElementById('readingCount');
@@ -222,6 +225,7 @@ function renderHome() {
   finishedCount.textContent = formatCount(finishedBooks.length);
 
   renderRecentBooks();
+  renderRecommendationsList();
 }
 
 // 本ごとに最新の感想日付を1つだけ求め、新しい順に直近5冊を表示する。
@@ -364,9 +368,9 @@ searchForm.addEventListener('submit', async (e) => {
     queryParts.push(keyword);
   }
 
-  const query = queryParts.join(' ');
+  const searchQuery = queryParts.join(' ');
 
-  if (!query) return;
+  if (!searchQuery) return;
 
   searchHint.hidden = false;
   searchHint.textContent = t('searching');
@@ -374,11 +378,10 @@ searchForm.addEventListener('submit', async (e) => {
 
   try {
     const res = await fetch(
-  `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=40&key=${GOOGLE_BOOKS_API_KEY}`
+  `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchQuery)}&maxResults=40&key=${GOOGLE_BOOKS_API_KEY}`
 );
 
     const data = await res.json();
-    console.log(data);
     renderSearchResults(data.items || []);
   } catch (err) {
     searchHint.textContent =
@@ -450,6 +453,167 @@ async function registerBook(id, info) {
   if (state.activeShelf === 'unread') {
     renderShelf();
   }
+}
+
+// ---------- おすすめの本（趣味が近い人の評価をもとに） ----------
+// アルゴリズム:
+// 1. 自分の感想を本ごとに平均し、平均★4以上の本を「自分が好きな本」とする
+// 2. その本について、他の人が共有した感想（shared:true）を集め、
+//    その人ごとの平均が★4以上なら「趣味が近い人」とみなす
+// 3. 趣味が近い人たちが共有している、自分がまだ持っていない本のうち、
+//    平均★4以上のものを、その人数が多い順におすすめとして表示する
+// 4. 本の情報（タイトル・著者・表紙）はFirestoreではなくGoogle Books APIから直接取得する
+//    （他人のuserBooksは読む権限がないため）
+
+let recommendedBooks = [];
+
+function averageStarsByBook(impressionsList) {
+  const totals = new Map();
+  impressionsList.forEach((imp) => {
+    if (!totals.has(imp.bookId)) totals.set(imp.bookId, { sum: 0, count: 0 });
+    const entry = totals.get(imp.bookId);
+    entry.sum += imp.stars;
+    entry.count += 1;
+  });
+  const averages = new Map();
+  totals.forEach((v, bookId) => averages.set(bookId, v.sum / v.count));
+  return averages;
+}
+
+async function computeRecommendations() {
+  const myAverages = averageStarsByBook(impressionsCache);
+  const myLikedBookIds = [...myAverages.entries()]
+    .filter(([, avg]) => avg >= 4)
+    .map(([bookId]) => bookId);
+
+  if (myLikedBookIds.length === 0) return [];
+
+  const myBookIdSet = new Set(booksCache.map((b) => b.id));
+
+  // 趣味が近い人（自分が好きな本を、同じく高く評価している人）を集める
+  const similarUids = new Set();
+  for (const bookId of myLikedBookIds) {
+    let snap;
+    try {
+      snap = await getDocs(
+        query(collection(db, 'impressions'), where('bookId', '==', bookId), where('shared', '==', true))
+      );
+    } catch {
+      continue;
+    }
+
+    const byUser = new Map();
+    snap.docs.forEach((d) => {
+      const data = d.data();
+      if (data.uid === currentUid) return;
+      if (!byUser.has(data.uid)) byUser.set(data.uid, []);
+      byUser.get(data.uid).push(data.stars);
+    });
+
+    byUser.forEach((starsArr, uid) => {
+      const avg = starsArr.reduce((a, b) => a + b, 0) / starsArr.length;
+      if (avg >= 4) similarUids.add(uid);
+    });
+  }
+
+  if (similarUids.size === 0) return [];
+
+  // 趣味が近い人たちが高評価している、自分がまだ持っていない本を集める
+  const candidateScores = new Map();
+  for (const uid of similarUids) {
+    let snap;
+    try {
+      snap = await getDocs(
+        query(collection(db, 'impressions'), where('uid', '==', uid), where('shared', '==', true))
+      );
+    } catch {
+      continue;
+    }
+
+    const byBook = new Map();
+    snap.docs.forEach((d) => {
+      const data = d.data();
+      if (myBookIdSet.has(data.bookId)) return;
+      if (!byBook.has(data.bookId)) byBook.set(data.bookId, []);
+      byBook.get(data.bookId).push(data.stars);
+    });
+
+    byBook.forEach((starsArr, bookId) => {
+      const avg = starsArr.reduce((a, b) => a + b, 0) / starsArr.length;
+      if (avg < 4) return;
+      if (!candidateScores.has(bookId)) candidateScores.set(bookId, { count: 0, avgSum: 0 });
+      const entry = candidateScores.get(bookId);
+      entry.count += 1;
+      entry.avgSum += avg;
+    });
+  }
+
+  const ranked = [...candidateScores.entries()]
+    .map(([bookId, { count, avgSum }]) => ({ bookId, count, avgAvg: avgSum / count }))
+    .sort((a, b) => b.count - a.count || b.avgAvg - a.avgAvg)
+    .slice(0, 5);
+
+  const results = [];
+  for (const { bookId } of ranked) {
+    try {
+      const res = await fetch(
+        `https://www.googleapis.com/books/v1/volumes/${bookId}?key=${GOOGLE_BOOKS_API_KEY}`
+      );
+      const data = await res.json();
+      if (data.volumeInfo) {
+        results.push({ id: bookId, info: data.volumeInfo });
+      }
+    } catch {
+      // 取得に失敗した本はスキップする
+    }
+  }
+  return results;
+}
+
+async function refreshRecommendations() {
+  recommendedBooks = await computeRecommendations();
+}
+
+function renderRecommendationsList() {
+  if (!recommendedList) return;
+  recommendedList.innerHTML = '';
+
+  if (recommendedBooks.length === 0) {
+    noRecommendedHint.hidden = false;
+    return;
+  }
+
+  noRecommendedHint.hidden = true;
+  const registeredIds = new Set(loadBooks().map((b) => b.id));
+
+  recommendedBooks
+    .filter((rec) => !registeredIds.has(rec.id))
+    .forEach((rec) => {
+      const info = rec.info;
+      const cover = info.imageLinks?.thumbnail || '';
+      const title = info.title || t('unknownTitle');
+      const author = (info.authors || []).join(', ') || t('unknownAuthor');
+
+      const li = document.createElement('li');
+      li.className = 'recommend-item';
+      li.innerHTML = `
+        <img class="recommend-cover" src="${cover}" alt="">
+        <div class="recommend-info">
+          <p class="recommend-title">${escapeHtml(title)}</p>
+          <p class="recommend-author">${escapeHtml(author)}</p>
+        </div>
+        <button class="btn-signup">${t('signUpButton')}</button>
+      `;
+
+      const btn = li.querySelector('.btn-signup');
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        await registerBook(rec.id, info);
+        renderRecommendationsList();
+      });
+
+      recommendedList.appendChild(li);
+    });
 }
 
 // ---------- 本の詳細 ----------
@@ -837,6 +1001,11 @@ saveImpressionBtn.addEventListener('click', async () => {
 
   closePanel(impressionPanel);
   renderImpressions(bookId);
+
+  await refreshRecommendations();
+  if (!homeDashboard.hidden) {
+    renderRecommendationsList();
+  }
 });
 
 deleteBookBtn.addEventListener('click', async () => {
