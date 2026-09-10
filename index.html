@@ -11,6 +11,8 @@
 </head>
 <body>
 
+  <div id="authGate" class="auth-gate"><p>確認中…</p></div>
+
   <!-- ===== ヘッダー ===== -->
   <header class="app-header">
     <h1 class="logo">My Bookshelf</h1>
@@ -19,6 +21,7 @@
       <button class="lang-btn" data-lang="en">EN</button>
       <button class="lang-btn" data-lang="vi">VI</button>
     </nav>
+    <button class="btn-logout" id="logoutBtn">ログアウト</button>
     <button class="btn-add" id="openSearchBtn" data-i18n="addBook" aria-label="本を登録する">＋ 本を登録</button>
   </header>
 
@@ -151,6 +154,36 @@
   </section>
 
   <script src="i18n.js"></script>
-  <script src="script.js"></script>
+  <script type="module">
+    import { requireAuth, logoutUser } from './auth.js';
+    import { initApp } from './script.js';
+
+    (async () => {
+      try {
+        const user = await requireAuth();
+        if (user) {
+          await initApp(user.uid);
+          document.getElementById('authGate').remove();
+        }
+        // 未ログインの場合はrequireAuth内でlogin.htmlへ移動するため、
+        // ここでは何もしない（画面遷移が終わるまでauthGateで隠したままにする）
+      } catch (err) {
+        console.error('アプリの初期化に失敗しました:', err);
+        const gate = document.getElementById('authGate');
+        gate.innerHTML = `
+          <div style="text-align:center; padding: 0 24px;">
+            <p>読み込みに失敗しました。</p>
+            <p style="font-size: 0.8rem; color: #8C3B34; margin-top: 8px;">${err.message || err}</p>
+            <button onclick="location.reload()" style="margin-top: 16px; padding: 8px 16px; border-radius: 4px; border: 1px solid #D9CFB7; background: #fff; cursor: pointer;">再読み込み</button>
+          </div>
+        `;
+      }
+    })();
+
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await logoutUser();
+      window.location.href = 'login.html';
+    });
+  </script>
 </body>
 </html>
