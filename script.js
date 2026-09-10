@@ -690,7 +690,9 @@ function renderImpressions(bookId) {
       ${imp.note ? `<p class="impression-note">${escapeHtml(imp.note)}</p>` : ''}
       <p class="impression-date">${formatDate(imp.date)}</p>
       <div class="impression-item-actions">
-        <button class="btn-share ${imp.shared ? 'is-shared' : ''}" data-share-id="${imp.id}">${imp.shared ? '共有中' : '共有する'}</button>
+        <button class="btn-share ${imp.shared ? 'is-shared' : ''}" data-share-id="${imp.id}">
+  　　　　${imp.shared ? t('sharing') : t('share')}
+　　　　　</button>
         <button class="btn-edit" data-edit-id="${imp.id}">${t('edit')}</button>
         <button class="btn-delete" data-delete-id="${imp.id}">${t('delete')}</button>
       </div>

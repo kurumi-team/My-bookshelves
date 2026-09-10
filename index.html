@@ -30,7 +30,7 @@
         </svg>
       </button>
     </div>
-    <button class="btn-logout" id="logoutBtn">ログアウト</button>
+    <button class="btn-logout" id="logoutBtn" data-i18n="logout">ログアウト</button>
     <button class="btn-add" id="openSearchBtn" data-i18n="addBook" aria-label="本を登録する">＋ 本を登録</button>
   </header>
 
@@ -90,42 +90,50 @@
   <!-- ===== 検索パネル ===== -->
   <section class="panel" id="searchPanel" hidden>
     <div class="panel-inner">
-      <button class="btn-close" data-close-panel>閉じる</button>
-      <h2 class="panel-title">本を検索</h2>
+      <button class="btn-close" data-close-panel data-i18n="close">閉じる</button>
+      <h2 class="panel-title" data-i18n="searchTitle">本を検索</h2>
       
 <form id="searchForm" class="search-form">
 
-  <label for="titleInput">Title</label>
+  <label for="titleInput" data-i18n="titleLabel">タイトル</label>
   <input
     type="text"
     id="titleInput"
+    data-i18n-placeholder="titlePlaceholder"
     placeholder="タイトル・タイトルの一部"
     autocomplete="off"
   >
 
   <label for="authorInput">Author</label>
   <input
-    type="text"
-    id="authorInput"
-    placeholder="著者名"
-    autocomplete="off"
-  >
+  type="text"
+  id="authorInput"
+  data-i18n-placeholder="authorPlaceholder"
+  placeholder="著者名"
+  autocomplete="off"
+>
 
   <label for="keywordInput">Keyword</label>
   <input
     type="text"
     id="keywordInput"
+    data-i18n-placeholder="keywordPlaceholder"
     placeholder="覚えているフレーズ・キーワード"
     autocomplete="off"
   >
 
-  <button type="submit" id="searchButton" disabled>
-    検索
-  </button>
+  <button
+  id="searchButton"
+  data-i18n="searchButton"
+  disabled
+>
+  検索
+</button>
+
 
 </form>
 
-      <p class="hint" id="searchHint">読みたい本のタイトルを入力してください。</p>
+      <p class="hint" id="searchHint" data-i18n="searchHintDefault">読みたい本のタイトルを入力してください。</p>
       <ul class="search-results" id="searchResults"></ul>
     </div>
   </section>
@@ -150,7 +158,7 @@
 
       <button class="btn-primary" id="leaveImpressionBtn" data-i18n="leaveImpression">感想を残す</button>
 
-      <button class="btn-secondary" id="viewSharedBtn">他の人の感想を見る</button>
+      <button class="btn-secondary" id="viewSharedBtn" data-i18n="viewOthersImpressions">他の人の感想を見る</button>
 
 　　　　<button class="btn-delete" id="deleteBookBtn" data-i18n="deleteBook">本棚から削除</button>
 
@@ -202,8 +210,8 @@
   <!-- ===== 他の人が共有した感想パネル ===== -->
   <section class="panel" id="sharedImpressionsPanel" hidden>
     <div class="panel-inner">
-      <button class="btn-close" data-close-panel>閉じる</button>
-      <h2 class="panel-title">他の人の感想</h2>
+      <button class="btn-close" data-close-panel data-i18n="close">閉じる</button>
+      <h2 class="panel-title" data-i18n="othersImpressions">他の人の感想</h2>
       <ul class="impression-list" id="sharedImpressionList"></ul>
       <p class="hint" id="noSharedImpressionHint" hidden>まだ共有されている感想がありません。</p>
     </div>
@@ -212,18 +220,21 @@
   <!-- ===== アカウントパネル（ユーザー名の表示・変更） ===== -->
   <section class="panel" id="usernamePanel" hidden>
     <div class="panel-inner">
-      <button class="btn-close" data-close-panel>閉じる</button>
-      <h2 class="panel-title">アカウント</h2>
+      <button class="btn-close" data-close-panel data-i18n="close">閉じる</button>
+      <h2 class="panel-title" data-i18n="accountTitle">アカウント</h2>
 
-      <p class="current-username">現在のユーザー名：<strong id="currentUsernameText"></strong></p>
+      <p class="current-username">
+  <span data-i18n="currentUsername">現在のユーザー名：</span>
+  <strong id="currentUsernameText"></strong>
+</p>
 
-      <label class="field-label" for="newUsernameInput">新しいユーザー名</label>
+      <label class="field-label" for="newUsernameInput"  data-i18n="newUsername">新しいユーザー名</label>
       <input type="text" id="newUsernameInput" class="username-input" maxlength="30">
-      <p class="hint">他の人に表示される名前です。共有された感想の投稿者名としても使われます。</p>
+      <p class="hint"  data-i18n="usernameHelp">他の人に表示される名前です。共有された感想の投稿者名としても使われます。</p>
 
       <p class="auth-error" id="usernameError" hidden></p>
 
-      <button class="btn-primary" id="saveUsernameBtn">保存</button>
+      <button class="btn-primary" id="saveUsernameBtn" data-i18n="save">保存</button>
     </div>
   </section>
 

@@ -13,28 +13,36 @@
 
   <main class="auth-page">
     <div class="auth-card">
+
+　　　 <nav class="lang-switch" id="langSwitch" aria-label="Language">
+    <button class="lang-btn" data-lang="ja">JA</button>
+    <button class="lang-btn" data-lang="en">EN</button>
+    <button class="lang-btn" data-lang="vi">VI</button>
+  </nav>
+
       <h1 class="logo auth-logo">My Bookshelf</h1>
-      <h2 class="auth-title">ログイン</h2>
+      <h2 class="auth-title" data-i18n="loginTitle">ログイン</h2>
 
       <form id="loginForm" class="auth-form">
-        <label class="field-label" for="loginEmail">メールアドレス</label>
+        <label class="field-label" for="loginEmail" data-i18n="emailAddress">メールアドレス</label>
         <input type="email" id="loginEmail" autocomplete="email" required>
 
-        <label class="field-label" for="loginPassword">パスワード</label>
+        <label class="field-label" for="loginPassword" data-i18n="password">パスワード</label>
         <input type="password" id="loginPassword" autocomplete="current-password" required>
 
         <p class="auth-error" id="loginError" hidden></p>
 
-        <button type="submit" class="btn-primary" id="loginSubmit">ログイン</button>
+        <button type="submit" class="btn-primary" id="loginSubmit" data-i18n="loginButton">ログイン</button>
       </form>
 
       <p class="auth-switch">
-        アカウントをお持ちでない方は
-        <a href="signup.html">こちら</a>
-      </p>
+  <span data-i18n="noAccount">アカウントをお持ちでない方は</span>
+  <a href="signup.html" data-i18n="here">こちら</a>
+</p>
     </div>
   </main>
 
+  <script src="i18n.js"></script>
   <script type="module">
     import { loginUser, redirectIfLoggedIn } from './auth.js';
 
@@ -43,6 +51,30 @@
     const form = document.getElementById('loginForm');
     const errorEl = document.getElementById('loginError');
     const submitBtn = document.getElementById('loginSubmit');
+
+    const langSwitch = document.getElementById('langSwitch');
+
+function applyTranslations() {
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    el.textContent = t(el.dataset.i18n);
+  });
+
+  langSwitch.querySelectorAll('.lang-btn').forEach((btn) => {
+    btn.classList.toggle('is-active', btn.dataset.lang === getLang());
+  });
+
+  document.documentElement.lang = getLang();
+}
+
+langSwitch.addEventListener('click', (e) => {
+  const btn = e.target.closest('.lang-btn');
+  if (!btn) return;
+
+  setLang(btn.dataset.lang);
+  applyTranslations();
+});
+
+applyTranslations();
 
     if (new URLSearchParams(window.location.search).get('created') === '1') {
       errorEl.textContent = 'アカウントを作成しました。ログインしてください。';
@@ -55,7 +87,7 @@
       errorEl.hidden = true;
       errorEl.classList.remove('auth-success');
       submitBtn.disabled = true;
-      submitBtn.textContent = 'ログイン中…';
+      submitBtn.textContent = t('loggingIn');
 
       const email = document.getElementById('loginEmail').value.trim();
       const password = document.getElementById('loginPassword').value;
