@@ -53,9 +53,24 @@ const finishedCount = document.getElementById('finishedCount');
 
 const searchPanel = document.getElementById('searchPanel');
 const searchForm = document.getElementById('searchForm');
-const searchInput = document.getElementById('searchInput');
+const titleInput = document.getElementById('titleInput');
+const authorInput = document.getElementById('authorInput');
+const keywordInput = document.getElementById('keywordInput');
+const searchButton = document.getElementById('searchButton');
 const searchResultsEl = document.getElementById('searchResults');
 const searchHint = document.getElementById('searchHint');
+
+function updateSearchButton() {
+  const hasTitle = titleInput.value.trim() !== '';
+  const hasAuthor = authorInput.value.trim() !== '';
+  const hasKeyword = keywordInput.value.trim() !== '';
+
+  searchButton.disabled = !(hasTitle || hasAuthor || hasKeyword);
+}
+
+titleInput.addEventListener('input', updateSearchButton);
+authorInput.addEventListener('input', updateSearchButton);
+keywordInput.addEventListener('input', updateSearchButton);
 
 const detailPanel = document.getElementById('detailPanel');
 const detailCover = document.getElementById('detailCover');
@@ -160,17 +175,46 @@ shelfTabsEl.addEventListener('click', (e) => {
 
 // ---------- 検索（Google Books API） ----------
 
+const GOOGLE_BOOKS_API_KEY = 'AIzaSyA1LzbC_Px9kIVyDw8KBhOw0EZ66icACFI';
+
+
 document.getElementById('openSearchBtn').addEventListener('click', () => {
   searchResultsEl.innerHTML = '';
   searchHint.hidden = false;
-  searchInput.value = '';
+
+  titleInput.value = '';
+  authorInput.value = '';
+  keywordInput.value = '';
+
+  updateSearchButton();
+
   openPanel(searchPanel);
-  searchInput.focus();
+  titleInput.focus();
 });
 
 searchForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-  const query = searchInput.value.trim();
+
+  const title = titleInput.value.trim();
+  const author = authorInput.value.trim();
+  const keyword = keywordInput.value.trim();
+
+  const queryParts = [];
+
+  if (title) {
+    queryParts.push(`intitle:${title}`);
+  }
+
+  if (author) {
+    queryParts.push(`inauthor:${author}`);
+  }
+
+  if (keyword) {
+    queryParts.push(keyword);
+  }
+
+  const query = queryParts.join(' ');
+
   if (!query) return;
 
   searchHint.hidden = false;
@@ -179,12 +223,15 @@ searchForm.addEventListener('submit', async (e) => {
 
   try {
     const res = await fetch(
-      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10&key=AIzaSyA7MtgZSbBxmJ5_H7OrkmSPidTvPAuR75A`
-    );
+  `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=40&key=${GOOGLE_BOOKS_API_KEY}`
+);
+
     const data = await res.json();
+    console.log(data);
     renderSearchResults(data.items || []);
   } catch (err) {
-    searchHint.textContent = '検索に失敗しました。通信環境を確認してもう一度お試しください。';
+    searchHint.textContent =
+      '検索に失敗しました。通信環境を確認してもう一度お試しください。';
   }
 });
 

@@ -69,10 +69,39 @@
     <div class="panel-inner">
       <button class="btn-close" data-close-panel>閉じる</button>
       <h2 class="panel-title">本を検索</h2>
-      <form id="searchForm" class="search-form">
-        <input type="text" id="searchInput" placeholder="タイトルや著者名で検索" autocomplete="off">
-        <button type="submit">検索</button>
-      </form>
+      
+<form id="searchForm" class="search-form">
+
+  <label for="titleInput">Title</label>
+  <input
+    type="text"
+    id="titleInput"
+    placeholder="タイトル・タイトルの一部"
+    autocomplete="off"
+  >
+
+  <label for="authorInput">Author</label>
+  <input
+    type="text"
+    id="authorInput"
+    placeholder="著者名"
+    autocomplete="off"
+  >
+
+  <label for="keywordInput">Keyword</label>
+  <input
+    type="text"
+    id="keywordInput"
+    placeholder="覚えているフレーズ・キーワード"
+    autocomplete="off"
+  >
+
+  <button type="submit" id="searchButton" disabled>
+    検索
+  </button>
+
+</form>
+
       <p class="hint" id="searchHint">読みたい本のタイトルを入力してください。</p>
       <ul class="search-results" id="searchResults"></ul>
     </div>
