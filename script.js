@@ -319,7 +319,10 @@ function renderShelf() {
       const spine = document.createElement('button');
       spine.className = 'book-spine';
       spine.innerHTML = `<span>${escapeHtml(book.title)}</span>`;
-      spine.addEventListener('click', () => openDetail(book.id));
+      spine.addEventListener('click', () => {
+  console.log('本をクリック:', book.id, book.title);
+  openDetail(book.id);
+});
       shelfEl.appendChild(spine);
     });
   }
@@ -395,6 +398,84 @@ searchForm.addEventListener('submit', async (e) => {
   }
 });
 
+const bookPreviewPanel = document.getElementById('bookPreviewPanel');
+
+const previewBookImage =
+  document.getElementById('previewBookImage');
+
+const previewBookTitle =
+  document.getElementById('previewBookTitle');
+
+const previewBookAuthor =
+  document.getElementById('previewBookAuthor');
+
+const previewBookPublished =
+  document.getElementById('previewBookPublished');
+
+const previewBookDescription =
+  document.getElementById('previewBookDescription');
+
+const previewRegisterBtn =
+  document.getElementById('previewRegisterBtn');
+
+const previewViewSharedBtn =
+  document.getElementById('previewViewSharedBtn');
+
+
+
+let selectedPreviewBook = null;
+
+
+function openBookPreview(item) {
+
+  selectedPreviewBook = item;
+
+  const info = item.volumeInfo || {};
+
+  previewBookTitle.textContent =
+    info.title || 'タイトル不明';
+
+  previewBookAuthor.textContent =
+    info.authors
+      ? info.authors.join(', ')
+      : '著者不明';
+
+  previewBookPublished.textContent =
+    info.publishedDate
+      ? `出版日：${info.publishedDate}`
+      : '出版日：不明';
+
+  previewBookDescription.textContent =
+    info.description ||
+    'この本の説明は登録されていません。';
+
+
+  const imageUrl =
+    info.imageLinks?.thumbnail ||
+    info.imageLinks?.smallThumbnail;
+
+  if (imageUrl) {
+    previewBookImage.src =
+      imageUrl.replace('http://', 'https://');
+
+    previewBookImage.hidden = false;
+
+  } else {
+
+    previewBookImage.hidden = true;
+
+  }
+
+const alreadyAdded = loadBooks().some((book) => book.id === item.id);
+
+previewRegisterBtn.disabled = alreadyAdded;
+
+previewRegisterBtn.textContent =
+  alreadyAdded ? t('addedLabel') : '本棚に登録';
+  bookPreviewPanel.hidden = false;
+}
+
+
 function renderSearchResults(items) {
   searchResultsEl.innerHTML = '';
 
@@ -421,15 +502,27 @@ function renderSearchResults(items) {
         <p class="result-title">${escapeHtml(info.title || t('unknownTitle'))}</p>
         <p class="result-author">${escapeHtml((info.authors || []).join(', ') || t('unknownAuthor'))}</p>
       </div>
+
       <button class="btn-signup" ${alreadyAdded ? 'disabled' : ''}>
         ${alreadyAdded ? t('addedLabel') : t('signUpButton')}
       </button>
     `;
 
     const btn = li.querySelector('.btn-signup');
+
+    
+
+   
+
+
     if (!alreadyAdded) {
-      btn.addEventListener('click', async () => {
+      btn.addEventListener('click', async (e) => {
+
+        /* これも追加 */
+        e.stopPropagation();
+
         await registerBook(item.id, info);
+
         btn.disabled = true;
         btn.textContent = t('addedLabel');
       });
@@ -438,6 +531,34 @@ function renderSearchResults(items) {
     searchResultsEl.appendChild(li);
   });
 }
+
+previewViewSharedBtn.addEventListener('click', async () => {
+  if (!selectedPreviewBook) return;
+
+  openPanel(sharedImpressionsPanel);
+  await renderSharedImpressions(selectedPreviewBook.id);
+});
+
+previewRegisterBtn.addEventListener('click', async () => {
+  if (!selectedPreviewBook) return;
+
+  const info = selectedPreviewBook.volumeInfo || {};
+
+  previewRegisterBtn.disabled = true;
+
+  try {
+    await registerBook(selectedPreviewBook.id, info);
+
+    previewRegisterBtn.textContent = t('addedLabel');
+
+    // おすすめ一覧も更新
+    renderRecommendationsList();
+
+  } catch (err) {
+    console.error(err);
+    previewRegisterBtn.disabled = false;
+  }
+});
 
 async function registerBook(id, info) {
   const book = {
@@ -459,7 +580,10 @@ async function registerBook(id, info) {
   if (state.activeShelf === 'unread') {
     renderShelf();
   }
+  renderHome();
 }
+
+
 
 // ---------- おすすめの本（趣味が近い人の評価をもとに） ----------
 // アルゴリズム:
@@ -578,6 +702,7 @@ async function refreshRecommendations() {
 
 function renderRecommendationsList() {
   if (!recommendedList) return;
+
   recommendedList.innerHTML = '';
 
   if (recommendedBooks.length === 0) {
@@ -586,7 +711,10 @@ function renderRecommendationsList() {
   }
 
   noRecommendedHint.hidden = true;
-  const registeredIds = new Set(loadBooks().map((b) => b.id));
+
+  const registeredIds = new Set(
+    loadBooks().map((b) => b.id)
+  );
 
   recommendedBooks
     .filter((rec) => !registeredIds.has(rec.id))
@@ -594,10 +722,12 @@ function renderRecommendationsList() {
       const info = rec.info;
       const cover = info.imageLinks?.thumbnail || '';
       const title = info.title || t('unknownTitle');
-      const author = (info.authors || []).join(', ') || t('unknownAuthor');
+      const author =
+        (info.authors || []).join(', ') || t('unknownAuthor');
 
       const li = document.createElement('li');
       li.className = 'recommend-item';
+
       li.innerHTML = `
         <img class="recommend-cover" src="${cover}" alt="">
         <div class="recommend-info">
@@ -608,10 +738,28 @@ function renderRecommendationsList() {
       `;
 
       const btn = li.querySelector('.btn-signup');
-      btn.addEventListener('click', async () => {
+
+      // 白いカード全体をクリック → 本の詳細
+      li.addEventListener('click', () => {
+        openBookPreview({
+          id: rec.id,
+          volumeInfo: info
+        });
+      });
+
+      // Addボタン → 直接登録
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+
         btn.disabled = true;
-        await registerBook(rec.id, info);
-        renderRecommendationsList();
+
+        try {
+          await registerBook(rec.id, info);
+          renderRecommendationsList();
+        } catch (err) {
+          console.error(err);
+          btn.disabled = false;
+        }
       });
 
       recommendedList.appendChild(li);
@@ -621,7 +769,12 @@ function renderRecommendationsList() {
 // ---------- 本の詳細 ----------
 
 function openDetail(bookId) {
+  console.log('openDetail開始:', bookId);
+
   const book = loadBooks().find((b) => b.id === bookId);
+
+  console.log('見つかった本:', book);
+
   if (!book) return;
 
   state.currentBookId = bookId;
@@ -635,8 +788,12 @@ function openDetail(bookId) {
     btn.classList.toggle('is-current', btn.dataset.setStatus === book.status);
   });
 
+  console.log('詳細パネルを開く直前');
+
   renderImpressions(bookId);
   openPanel(detailPanel);
+
+  console.log('detailPanel.hidden:', detailPanel.hidden);
 }
 
 detailActions.addEventListener('click', async (e) => {
