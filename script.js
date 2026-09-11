@@ -510,6 +510,10 @@ function renderSearchResults(items) {
 
     const btn = li.querySelector('.btn-signup');
 
+    li.addEventListener('click', () => {
+  openBookPreview(item);
+});
+
     
 
    
