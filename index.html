@@ -138,10 +138,47 @@
     </div>
   </section>
 
+  <div id="bookPreviewPanel" class="panel" hidden>
+  <div class="panel-inner book-preview-inner">
+
+   <button id="closeBookPreviewBtn" data-close-panel data-i18n="close">閉じる</button>
+
+    <div class="book-preview-header">
+      <img id="previewBookImage" class="preview-book-image" src="" alt="本の表紙">
+
+      <div>
+        <h2 id="previewBookTitle"></h2>
+        <p id="previewBookAuthor"></p>
+        <p id="previewBookPublished"></p>
+      </div>
+    </div>
+
+  
+    <button
+  id="previewRegisterBtn"
+  class="preview-register-btn">
+  本棚に登録
+</button>
+
+<button
+  class="btn-secondary"
+  id="previewViewSharedBtn"
+  data-i18n="viewOthersImpressions">
+  他の人の感想を見る
+</button>
+
+<div class="book-preview-description">
+  <h3>本の詳細</h3>
+  <p id="previewBookDescription"></p>
+</div>
+
+</div>
+</div>
+  
   <!-- ===== 本の詳細パネル ===== -->
   <section class="panel" id="detailPanel" hidden>
     <div class="panel-inner">
-      <button class="btn-close" data-close-panel data-i18n="close">閉じる</button>
+      <button class="btn-close" data-close-panel >閉じる</button>
       <div class="detail-book">
         <img class="detail-cover" id="detailCover" alt="">
         <div class="detail-meta">
@@ -159,8 +196,8 @@
       <button class="btn-primary" id="leaveImpressionBtn" data-i18n="leaveImpression">感想を残す</button>
 
       <button class="btn-secondary" id="viewSharedBtn" data-i18n="viewOthersImpressions">他の人の感想を見る</button>
-
-　　　　<button class="btn-delete" id="deleteBookBtn" data-i18n="deleteBook">本棚から削除</button>
+     
+      <button class="btn-delete" id="deleteBookBtn" data-i18n="deleteBook">本棚から削除</button>
 
 
       <div class="impressions-block">
