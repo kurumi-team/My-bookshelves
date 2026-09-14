@@ -399,6 +399,90 @@ searchForm.addEventListener('submit', async (e) => {
   }
 });
 
+const bookPreviewPanel = document.getElementById('bookPreviewPanel');
+
+const previewBookImage =
+  document.getElementById('previewBookImage');
+
+const previewBookTitle =
+  document.getElementById('previewBookTitle');
+
+const previewBookAuthor =
+  document.getElementById('previewBookAuthor');
+
+const previewBookPublished =
+  document.getElementById('previewBookPublished');
+
+const previewBookDescription =
+  document.getElementById('previewBookDescription');
+
+const previewRegisterBtn =
+  document.getElementById('previewRegisterBtn');
+
+const previewViewSharedBtn =
+  document.getElementById('previewViewSharedBtn');
+
+
+
+let selectedPreviewBook = null;
+
+
+function openBookPreview(item) {
+
+  selectedPreviewBook = item;
+
+  const info = item.volumeInfo || {};
+
+  previewBookTitle.textContent =
+    info.title || 'タイトル不明';
+
+  previewBookAuthor.textContent =
+    info.authors
+      ? info.authors.join(', ')
+      : '著者不明';
+
+  previewBookPublished.textContent =
+    info.publishedDate
+      ? `出版日：${info.publishedDate}`
+      : '出版日：不明';
+
+  previewBookDescription.textContent =
+    info.description ||
+    'この本の説明は登録されていません。';
+
+
+  const imageUrl =
+    info.imageLinks?.thumbnail ||
+    info.imageLinks?.smallThumbnail;
+
+  if (imageUrl) {
+    previewBookImage.src =
+      imageUrl.replace('http://', 'https://');
+
+    previewBookImage.hidden = false;
+
+  } else {
+
+    previewBookImage.hidden = true;
+
+  }
+
+const alreadyAdded = loadBooks().some((book) => book.id === item.id);
+
+previewRegisterBtn.disabled = false;
+
+if (alreadyAdded) {
+  previewRegisterBtn.textContent = t('addedLabel');
+  previewRegisterBtn.classList.add('is-added');
+} else {
+  previewRegisterBtn.textContent = t('signUpButton');
+  previewRegisterBtn.classList.remove('is-added');
+}
+
+bookPreviewPanel.hidden = false;
+}
+
+
 function renderSearchResults(items) {
   searchResultsEl.innerHTML = '';
 
@@ -425,23 +509,86 @@ function renderSearchResults(items) {
         <p class="result-title">${escapeHtml(info.title || t('unknownTitle'))}</p>
         <p class="result-author">${escapeHtml((info.authors || []).join(', ') || t('unknownAuthor'))}</p>
       </div>
-      <button class="btn-signup" ${alreadyAdded ? 'disabled' : ''}>
+
+      <button class="btn-signup" >
         ${alreadyAdded ? t('addedLabel') : t('signUpButton')}
       </button>
     `;
 
     const btn = li.querySelector('.btn-signup');
-    if (!alreadyAdded) {
-      btn.addEventListener('click', async () => {
-        await registerBook(item.id, info);
-        btn.disabled = true;
-        btn.textContent = t('addedLabel');
-      });
-    }
+    if (alreadyAdded) {
+  btn.classList.add('is-added');
+}
+
+    li.addEventListener('click', () => {
+  openBookPreview(item);
+});
+
+
+   btn.addEventListener('click', async (e) => {
+  e.stopPropagation();
+
+  const isRegistered = booksCache.some((book) => book.id === item.id);
+
+  if (isRegistered) {
+    await unregisterBook(item.id);
+
+    btn.disabled = false;
+    btn.textContent = t('signUpButton');
+    btn.classList.remove('is-added');
+  } else {
+    await registerBook(item.id, info);
+
+    btn.disabled = false;
+    btn.textContent = t('addedLabel');
+    btn.classList.add('is-added');
+  }
+});
 
     searchResultsEl.appendChild(li);
   });
 }
+
+previewViewSharedBtn.addEventListener('click', async () => {
+  if (!selectedPreviewBook) return;
+
+  openPanel(sharedImpressionsPanel);
+  await renderSharedImpressions(selectedPreviewBook.id);
+});
+
+previewRegisterBtn.addEventListener('click', async () => {
+  if (!selectedPreviewBook) return;
+
+  const info = selectedPreviewBook.volumeInfo || {};
+  const bookId = selectedPreviewBook.id;
+
+  const isRegistered = booksCache.some((book) => book.id === bookId);
+
+  previewRegisterBtn.disabled = true;
+
+  try {
+    if (isRegistered) {
+      await unregisterBook(bookId);
+
+      previewRegisterBtn.textContent = t('signUpButton');
+      previewRegisterBtn.classList.remove('is-added');
+
+    } else {
+      await registerBook(bookId, info);
+
+      previewRegisterBtn.textContent = t('addedLabel');
+      previewRegisterBtn.classList.add('is-added');
+    }
+
+    renderRecommendationsList();
+
+  } catch (err) {
+    console.error(err);
+  } finally {
+    previewRegisterBtn.disabled = false;
+  }
+});
+
 
 async function registerBook(id, info) {
   const book = {
@@ -1109,6 +1256,28 @@ saveImpressionBtn.addEventListener('click', async () => {
   }
 });
 
+async function unregisterBook(bookId) {
+  booksCache = booksCache.filter((book) => book.id !== bookId);
+
+  const removedImpressionIds = impressionsCache
+    .filter((imp) => imp.bookId === bookId)
+    .map((imp) => imp.id);
+
+  impressionsCache = impressionsCache.filter((imp) => imp.bookId !== bookId);
+
+  await deleteDoc(
+    doc(db, 'userBooks', `${currentUid}_${bookId}`)
+  );
+
+  await Promise.all(
+    removedImpressionIds.map((impId) =>
+      deleteDoc(doc(db, 'impressions', impId))
+    )
+  );
+
+  renderShelf();
+}
+
 deleteBookBtn.addEventListener('click', async () => {
   const confirmed = confirm(t('confirmDeleteBook'));
 
@@ -1118,20 +1287,10 @@ deleteBookBtn.addEventListener('click', async () => {
 
   const bookId = state.currentBookId;
 
-  booksCache = booksCache.filter((book) => book.id !== bookId);
-  const removedImpressionIds = impressionsCache
-    .filter((imp) => imp.bookId === bookId)
-    .map((imp) => imp.id);
-  impressionsCache = impressionsCache.filter((imp) => imp.bookId !== bookId);
+  await unregisterBook(bookId);
 
   closePanel(detailPanel);
   state.currentBookId = null;
-  renderShelf();
-
-  await deleteDoc(doc(db, 'userBooks', `${currentUid}_${bookId}`));
-  await Promise.all(
-    removedImpressionIds.map((impId) => deleteDoc(doc(db, 'impressions', impId)))
-  );
 });
 
 
