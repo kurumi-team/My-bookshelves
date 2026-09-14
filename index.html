@@ -93,6 +93,30 @@
     この棚にはまだ本がありません。「＋ 本を登録」から追加してみましょう。
   </p>
 
+  <!-- ===== 未登録の本のプレビューパネル ===== -->
+  <section class="panel" id="bookPreviewPanel" hidden>
+    <div class="panel-inner book-preview-inner">
+      <button class="btn-close" data-close-panel>閉じる</button>
+
+      <div class="book-preview-header">
+        <img class="preview-book-image" id="previewBookImage" alt="">
+        <div>
+          <h2 id="previewBookTitle"></h2>
+          <p id="previewBookAuthor"></p>
+          <p id="previewBookPublished"></p>
+        </div>
+      </div>
+
+      <div class="book-preview-description">
+        <h3>概要</h3>
+        <p id="previewBookDescription"></p>
+      </div>
+
+      <button class="preview-shared-btn" id="previewViewSharedBtn">他の人の感想を見る</button>
+      <button class="preview-register-btn" id="previewRegisterBtn">登録する</button>
+    </div>
+  </section>
+
   <!-- ===== 検索パネル ===== -->
   <section class="panel" id="searchPanel" hidden>
     <div class="panel-inner">

@@ -32,11 +32,6 @@ let state = {
 };
 
 // ---------- Firestoreとの読み書き ----------
-// 画面描画は同期的な配列操作のままにしたいので、ログイン時に一度
-// Firestoreから全件読み込んでキャッシュ配列(booksCache / impressionsCache)を作り、
-// 以降の読み取りはこのキャッシュを見る。書き込み操作のたびに、
-// キャッシュとFirestoreの両方を更新する。
-
 function loadBooks() {
   return booksCache;
 }
@@ -49,8 +44,6 @@ function generateId() {
   return `imp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-// ログイン確認後にindex.htmlから呼び出す初期化処理。
-// ユーザーの本棚・感想データをFirestoreから読み込んでから、最初の描画を行う。
 export async function initApp(uid) {
   currentUid = uid;
 
@@ -76,7 +69,6 @@ export async function initApp(uid) {
   applyStaticTranslations();
   renderHome();
 
-  // おすすめの計算は画面表示をブロックしないよう、バックグラウンドで実行する
   refreshRecommendations().then(() => {
     if (!homeDashboard.hidden) {
       renderRecommendationsList();
@@ -169,7 +161,6 @@ function applyStaticTranslations() {
 }
 
 function refreshDynamicView() {
-  // 開いている画面に応じて、翻訳が必要な動的テキストを再描画する
   if (!homeDashboard.hidden) {
     renderHome();
   }
@@ -192,7 +183,6 @@ function refreshDynamicView() {
       }
     }
   }
-  // 検索結果が表示中なら、ボタンのラベルだけ翻訳し直す
   searchResultsEl.querySelectorAll('.btn-signup').forEach((btn) => {
     btn.textContent = btn.disabled ? t('addedLabel') : t('signUpButton');
   });
@@ -238,13 +228,10 @@ function renderHome() {
   renderPopularList();
 }
 
-// 本ごとに最新の感想日付を1つだけ求め、新しい順に直近5冊を表示する。
-// クリックするとその本の詳細画面が開く。
 function renderRecentBooks() {
   const books = loadBooks();
   const impressions = loadImpressions();
 
-  // 本ごとに、一番新しい感想の日付だけを残す
   const latestDateByBook = new Map();
   impressions.forEach((imp) => {
     const current = latestDateByBook.get(imp.bookId);
@@ -613,23 +600,10 @@ async function registerBook(id, info) {
 }
 
 // ---------- おすすめの本（趣味が近い人の評価をもとに） ----------
-// アルゴリズム:
-// 1. 自分の感想を本ごとに平均し、平均★4以上の本を「自分が好きな本」とする
-// 2. その本について、他の人が共有した感想（shared:true）を集め、
-//    その人ごとの平均が★4以上なら「趣味が近い人」とみなす
-// 3. 趣味が近い人たちが共有している、自分がまだ持っていない本のうち、
-//    平均★4以上のものを、その人数が多い順に候補としてまとめる
-// 4. 候補の上位プールからランダムに選ぶことで、ページを開き直すたびに
-//    表示される本が入れ替わるようにする
-// 5. 本の情報（タイトル・著者・表紙）はFirestoreではなくGoogle Books APIから直接取得する
-//    （他人のuserBooksは読む権限がないため）
-//
-// これとは別に「いま人気の本」も用意する。こちらは自分の好みに関係なく、
-// 共有されている感想全体を集計して、評価している人数が多い本を表示する。
 
-const RECOMMEND_DISPLAY_COUNT = 10; // おすすめの本として表示する件数
-const RECOMMEND_POOL_SIZE = 50;     // その中からランダムに選ぶための候補プールの大きさ
-const POPULAR_DISPLAY_COUNT = 10;   // いま人気の本として表示する件数
+const RECOMMEND_DISPLAY_COUNT = 10;
+const RECOMMEND_POOL_SIZE = 50;
+const POPULAR_DISPLAY_COUNT = 10;
 const POPULAR_POOL_SIZE = 50;
 
 let recommendedBooks = [];
@@ -648,8 +622,6 @@ function averageStarsByBook(impressionsList) {
   return averages;
 }
 
-// 配列の中身をシャッフルする（Fisher–Yates）。
-// ページを開き直すたびに違う本が出てくるようにするために使う。
 function shuffleArray(list) {
   const arr = [...list];
   for (let i = arr.length - 1; i > 0; i--) {
@@ -659,7 +631,6 @@ function shuffleArray(list) {
   return arr;
 }
 
-// 本のIDの配列から、Google Books APIで本の情報をまとめて（並列で）取得する。
 async function fetchBookInfoBatch(bookIds) {
   const results = await Promise.all(
     bookIds.map((bookId) =>
@@ -682,8 +653,6 @@ async function computeRecommendations() {
 
   const myBookIdSet = new Set(booksCache.map((b) => b.id));
 
-  // 趣味が近い人（自分が好きな本を、同じく高く評価している人）を集める
-  // 本ごとの問い合わせは、順番に待たず並列で実行する
   const likedBookSnaps = await Promise.all(
     myLikedBookIds.map((bookId) =>
       getDocs(
@@ -710,8 +679,6 @@ async function computeRecommendations() {
 
   if (similarUids.size === 0) return [];
 
-  // 趣味が近い人たちが高評価している、自分がまだ持っていない本を集める
-  // こちらもユーザーごとの問い合わせを並列で実行する
   const userSnaps = await Promise.all(
     [...similarUids].map((uid) =>
       getDocs(
@@ -740,8 +707,6 @@ async function computeRecommendations() {
     });
   });
 
-  // まず条件を満たす候補を評価順に並べ、上位プールを作る。
-  // そのプールの中からランダムに選ぶことで、読み込むたびに顔ぶれが変わるようにする。
   const ranked = [...candidateScores.entries()]
     .map(([bookId, { count, avgSum }]) => ({ bookId, count, avgAvg: avgSum / count }))
     .sort((a, b) => b.count - a.count || b.avgAvg - a.avgAvg)
@@ -752,7 +717,6 @@ async function computeRecommendations() {
   return fetchBookInfoBatch(selected.map((r) => r.bookId));
 }
 
-// 自分の好みに関係なく、共有されている感想全体から「いま人気の本」を集計する。
 async function computePopularBooks(excludeIds) {
   let snap;
   try {
@@ -775,7 +739,6 @@ async function computePopularBooks(excludeIds) {
       count: starsArr.length,
       avg: starsArr.reduce((a, b) => a + b, 0) / starsArr.length,
     }))
-    // 極端に評価の低い本まで「人気」として出さないよう、最低限のラインだけ設ける
     .filter((entry) => entry.avg >= 3)
     .sort((a, b) => b.count - a.count || b.avg - a.avg)
     .slice(0, POPULAR_POOL_SIZE);
@@ -793,8 +756,6 @@ async function refreshRecommendations() {
     computePopularBooks(myBookIdSet),
   ]);
 
-  // 「おすすめの本」と「いま人気の本」は、あえて重複除外をしていない。
-  // 両方に同じ本が出てくることもある（それぞれ別の切り口の集計のため）。
   recommendedBooks = personal;
   popularBooks = popular;
 }
@@ -986,7 +947,6 @@ document.getElementById('leaveImpressionBtn').addEventListener('click', () => {
 });
 
 // ---------- 他の人が共有した感想を見る ----------
-// ユーザー名は毎回読み込むと無駄が多いので、一度取得したらキャッシュしておく。
 const profileCache = new Map();
 
 async function getProfileCached(uid) {
