@@ -980,3 +980,34 @@ button {
   background-color: #888;
   color: white;
 }
+
+.advanced-search-fields {
+  margin-top: 16px;
+}
+
+.advanced-search-fields label {
+  display: block;
+  margin-top: 12px;
+  margin-bottom: 6px;
+}
+
+.advanced-search-fields select {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+}
+
+  /* 詳細検索ボタン */
+button.advanced-search-toggle {
+  background: transparent !important;
+  color: #1d281d !important;
+  border: 2px solid #1d281d !important;
+  border-radius: 6px;
+  padding: 7px;
+  width: 100%;
+  font-size: 12px;
+  cursor: pointer;
+}

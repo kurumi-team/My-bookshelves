@@ -107,6 +107,12 @@ const searchForm = document.getElementById('searchForm');
 const titleInput = document.getElementById('titleInput');
 const authorInput = document.getElementById('authorInput');
 const keywordInput = document.getElementById('keywordInput');
+const advancedSearchToggle = document.getElementById('advancedSearchToggle');
+const advancedSearchFields = document.getElementById('advancedSearchFields');
+
+const genreInput = document.getElementById('genreInput');
+const decadeInput = document.getElementById('decadeInput');
+const languageInput = document.getElementById('languageInput');
 const searchButton = document.getElementById('searchButton');
 const searchResultsEl = document.getElementById('searchResults');
 const searchHint = document.getElementById('searchHint');
@@ -116,12 +122,35 @@ function updateSearchButton() {
   const hasAuthor = authorInput.value.trim() !== '';
   const hasKeyword = keywordInput.value.trim() !== '';
 
-  searchButton.disabled = !(hasTitle || hasAuthor || hasKeyword);
+  const hasGenre = genreInput.value !== '';
+  const hasDecade = decadeInput.value !== '';
+  const hasLanguage = languageInput.value !== '';
+
+  searchButton.disabled = !(
+    hasTitle ||
+    hasAuthor ||
+    hasKeyword ||
+    hasGenre ||
+    hasDecade ||
+    hasLanguage
+  );
 }
 
 titleInput.addEventListener('input', updateSearchButton);
 authorInput.addEventListener('input', updateSearchButton);
 keywordInput.addEventListener('input', updateSearchButton);
+genreInput.addEventListener('change', updateSearchButton);
+decadeInput.addEventListener('change', updateSearchButton);
+languageInput.addEventListener('change', updateSearchButton);
+advancedSearchToggle.addEventListener('click', () => {
+  advancedSearchFields.hidden = !advancedSearchFields.hidden;
+
+  if (advancedSearchFields.hidden) {
+    advancedSearchToggle.textContent = '詳細検索 ▼';
+  } else {
+    advancedSearchToggle.textContent = '詳細検索 ▲';
+  }
+});
 
 const detailPanel = document.getElementById('detailPanel');
 const detailCover = document.getElementById('detailCover');
@@ -362,6 +391,9 @@ searchForm.addEventListener('submit', async (e) => {
   const title = titleInput.value.trim();
   const author = authorInput.value.trim();
   const keyword = keywordInput.value.trim();
+  const genre = genreInput.value;
+const decade = decadeInput.value;
+const language = languageInput.value;
 
   const queryParts = [];
 
@@ -377,7 +409,23 @@ searchForm.addEventListener('submit', async (e) => {
     queryParts.push(keyword);
   }
 
-  const searchQuery = queryParts.join(' ');
+  if (genre) {
+  queryParts.push(`subject:${genre}`);
+}
+
+  let searchQuery = queryParts.join(' ');
+
+// タイトル・著者・Keyword・ジャンルが何もない場合
+// 詳細条件だけでも検索できるようにする
+if (!searchQuery) {
+  if (language === 'ja') {
+    searchQuery = '本';
+  } else if (language === 'vi') {
+    searchQuery = 'sách';
+  } else {
+    searchQuery = 'book';
+  }
+}
 
   if (!searchQuery) return;
 
@@ -385,13 +433,38 @@ searchForm.addEventListener('submit', async (e) => {
   searchHint.textContent = t('searching');
   searchResultsEl.innerHTML = '';
 
+let languageParam = '';
+
+if (language) {
+  languageParam = `&langRestrict=${language}`;
+}
+
   try {
-    const res = await fetch(
-  `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchQuery)}&maxResults=40&key=${GOOGLE_BOOKS_API_KEY}`
-);
+  const res = await fetch(
+    `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchQuery)}&maxResults=40${languageParam}&key=${GOOGLE_BOOKS_API_KEY}`
+  );
 
     const data = await res.json();
-    renderSearchResults(data.items || []);
+
+let filteredItems = data.items || [];
+
+// 出版年代で絞り込む
+if (decade) {
+  const startYear = Number(decade);
+  const endYear = startYear + 9;
+
+  filteredItems = filteredItems.filter((item) => {
+    const publishedDate = item.volumeInfo?.publishedDate;
+
+    if (!publishedDate) return false;
+
+    const year = Number(publishedDate.substring(0, 4));
+
+    return year >= startYear && year <= endYear;
+  });
+}
+
+renderSearchResults(filteredItems);
   } catch (err) {
     searchHint.textContent =
       t('searchFailed');
