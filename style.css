@@ -958,3 +958,25 @@ button {
 .recommend-item {
   cursor: pointer;
 }
+
+/* 未登録：赤い登録ボタン */
+.btn-signup {
+  background-color: #9e3b32;
+  color: white;
+}
+
+/* 登録済み：グレー */
+.btn-signup.is-added {
+  background-color: #888;
+  color: white;
+}
+
+.preview-register-btn {
+  background-color: #9e3b32;
+  color: white;
+}
+
+.preview-register-btn.is-added {
+  background-color: #888;
+  color: white;
+}
