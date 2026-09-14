@@ -888,6 +888,14 @@ button {
   max-width: 720px;
 }
 
+#bookPreviewPanel {
+  z-index: 20;
+}
+
+#sharedImpressionsPanel {
+  z-index: 30;
+}
+
 .book-preview-header {
   display: flex;
   gap: 24px;

@@ -795,11 +795,16 @@ function renderBookListInto(listEl, hintEl, books, emptyMessage) {
       `;
 
       const btn = li.querySelector('.btn-signup');
-      btn.addEventListener('click', async () => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
         btn.disabled = true;
         await registerBook(rec.id, info);
         renderRecommendationsList();
         renderPopularList();
+      });
+
+      li.addEventListener('click', () => {
+        openBookPreview({ id: rec.id, volumeInfo: info });
       });
 
       listEl.appendChild(li);
