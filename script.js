@@ -80,6 +80,7 @@ export async function initApp(uid) {
   refreshRecommendations().then(() => {
     if (!homeDashboard.hidden) {
       renderRecommendationsList();
+      renderPopularList();
     }
   });
 }
@@ -97,6 +98,8 @@ const recentBooksList = document.getElementById('recentBooksList');
 const noRecentBooksEl = document.getElementById('noRecentBooks');
 const recommendedList = document.getElementById('recommendedList');
 const noRecommendedHint = document.getElementById('noRecommendedHint');
+const popularList = document.getElementById('popularList');
+const noPopularHint = document.getElementById('noPopularHint');
 
 const unreadCount = document.getElementById('unreadCount');
 const readingCount = document.getElementById('readingCount');
@@ -232,6 +235,7 @@ function renderHome() {
 
   renderRecentBooks();
   renderRecommendationsList();
+  renderPopularList();
 }
 
 // 本ごとに最新の感想日付を1つだけ求め、新しい順に直近5冊を表示する。
@@ -253,7 +257,7 @@ function renderRecentBooks() {
     .map(([bookId, date]) => ({ book: books.find((b) => b.id === bookId), date }))
     .filter((entry) => entry.book)
     .sort((a, b) => new Date(b.date) - new Date(a.date))
-    .slice(0, 5);
+    .slice(0, 10);
 
   recentBooksList.innerHTML = '';
 
@@ -319,10 +323,7 @@ function renderShelf() {
       const spine = document.createElement('button');
       spine.className = 'book-spine';
       spine.innerHTML = `<span>${escapeHtml(book.title)}</span>`;
-      spine.addEventListener('click', () => {
-  console.log('本をクリック:', book.id, book.title);
-  openDetail(book.id);
-});
+      spine.addEventListener('click', () => openDetail(book.id));
       shelfEl.appendChild(spine);
     });
   }
@@ -398,84 +399,6 @@ searchForm.addEventListener('submit', async (e) => {
   }
 });
 
-const bookPreviewPanel = document.getElementById('bookPreviewPanel');
-
-const previewBookImage =
-  document.getElementById('previewBookImage');
-
-const previewBookTitle =
-  document.getElementById('previewBookTitle');
-
-const previewBookAuthor =
-  document.getElementById('previewBookAuthor');
-
-const previewBookPublished =
-  document.getElementById('previewBookPublished');
-
-const previewBookDescription =
-  document.getElementById('previewBookDescription');
-
-const previewRegisterBtn =
-  document.getElementById('previewRegisterBtn');
-
-const previewViewSharedBtn =
-  document.getElementById('previewViewSharedBtn');
-
-
-
-let selectedPreviewBook = null;
-
-
-function openBookPreview(item) {
-
-  selectedPreviewBook = item;
-
-  const info = item.volumeInfo || {};
-
-  previewBookTitle.textContent =
-    info.title || 'タイトル不明';
-
-  previewBookAuthor.textContent =
-    info.authors
-      ? info.authors.join(', ')
-      : '著者不明';
-
-  previewBookPublished.textContent =
-    info.publishedDate
-      ? `出版日：${info.publishedDate}`
-      : '出版日：不明';
-
-  previewBookDescription.textContent =
-    info.description ||
-    'この本の説明は登録されていません。';
-
-
-  const imageUrl =
-    info.imageLinks?.thumbnail ||
-    info.imageLinks?.smallThumbnail;
-
-  if (imageUrl) {
-    previewBookImage.src =
-      imageUrl.replace('http://', 'https://');
-
-    previewBookImage.hidden = false;
-
-  } else {
-
-    previewBookImage.hidden = true;
-
-  }
-
-const alreadyAdded = loadBooks().some((book) => book.id === item.id);
-
-previewRegisterBtn.disabled = alreadyAdded;
-
-previewRegisterBtn.textContent =
-  alreadyAdded ? t('addedLabel') : '本棚に登録';
-  bookPreviewPanel.hidden = false;
-}
-
-
 function renderSearchResults(items) {
   searchResultsEl.innerHTML = '';
 
@@ -502,31 +425,15 @@ function renderSearchResults(items) {
         <p class="result-title">${escapeHtml(info.title || t('unknownTitle'))}</p>
         <p class="result-author">${escapeHtml((info.authors || []).join(', ') || t('unknownAuthor'))}</p>
       </div>
-
       <button class="btn-signup" ${alreadyAdded ? 'disabled' : ''}>
         ${alreadyAdded ? t('addedLabel') : t('signUpButton')}
       </button>
     `;
 
     const btn = li.querySelector('.btn-signup');
-
-    li.addEventListener('click', () => {
-  openBookPreview(item);
-});
-
-    
-
-   
-
-
     if (!alreadyAdded) {
-      btn.addEventListener('click', async (e) => {
-
-        /* これも追加 */
-        e.stopPropagation();
-
+      btn.addEventListener('click', async () => {
         await registerBook(item.id, info);
-
         btn.disabled = true;
         btn.textContent = t('addedLabel');
       });
@@ -535,34 +442,6 @@ function renderSearchResults(items) {
     searchResultsEl.appendChild(li);
   });
 }
-
-previewViewSharedBtn.addEventListener('click', async () => {
-  if (!selectedPreviewBook) return;
-
-  openPanel(sharedImpressionsPanel);
-  await renderSharedImpressions(selectedPreviewBook.id);
-});
-
-previewRegisterBtn.addEventListener('click', async () => {
-  if (!selectedPreviewBook) return;
-
-  const info = selectedPreviewBook.volumeInfo || {};
-
-  previewRegisterBtn.disabled = true;
-
-  try {
-    await registerBook(selectedPreviewBook.id, info);
-
-    previewRegisterBtn.textContent = t('addedLabel');
-
-    // おすすめ一覧も更新
-    renderRecommendationsList();
-
-  } catch (err) {
-    console.error(err);
-    previewRegisterBtn.disabled = false;
-  }
-});
 
 async function registerBook(id, info) {
   const book = {
@@ -584,10 +463,7 @@ async function registerBook(id, info) {
   if (state.activeShelf === 'unread') {
     renderShelf();
   }
-  renderHome();
 }
-
-
 
 // ---------- おすすめの本（趣味が近い人の評価をもとに） ----------
 // アルゴリズム:
@@ -595,11 +471,22 @@ async function registerBook(id, info) {
 // 2. その本について、他の人が共有した感想（shared:true）を集め、
 //    その人ごとの平均が★4以上なら「趣味が近い人」とみなす
 // 3. 趣味が近い人たちが共有している、自分がまだ持っていない本のうち、
-//    平均★4以上のものを、その人数が多い順におすすめとして表示する
-// 4. 本の情報（タイトル・著者・表紙）はFirestoreではなくGoogle Books APIから直接取得する
+//    平均★4以上のものを、その人数が多い順に候補としてまとめる
+// 4. 候補の上位プールからランダムに選ぶことで、ページを開き直すたびに
+//    表示される本が入れ替わるようにする
+// 5. 本の情報（タイトル・著者・表紙）はFirestoreではなくGoogle Books APIから直接取得する
 //    （他人のuserBooksは読む権限がないため）
+//
+// これとは別に「いま人気の本」も用意する。こちらは自分の好みに関係なく、
+// 共有されている感想全体を集計して、評価している人数が多い本を表示する。
+
+const RECOMMEND_DISPLAY_COUNT = 10; // おすすめの本として表示する件数
+const RECOMMEND_POOL_SIZE = 50;     // その中からランダムに選ぶための候補プールの大きさ
+const POPULAR_DISPLAY_COUNT = 10;   // いま人気の本として表示する件数
+const POPULAR_POOL_SIZE = 50;
 
 let recommendedBooks = [];
+let popularBooks = [];
 
 function averageStarsByBook(impressionsList) {
   const totals = new Map();
@@ -612,6 +499,30 @@ function averageStarsByBook(impressionsList) {
   const averages = new Map();
   totals.forEach((v, bookId) => averages.set(bookId, v.sum / v.count));
   return averages;
+}
+
+// 配列の中身をシャッフルする（Fisher–Yates）。
+// ページを開き直すたびに違う本が出てくるようにするために使う。
+function shuffleArray(list) {
+  const arr = [...list];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// 本のIDの配列から、Google Books APIで本の情報をまとめて（並列で）取得する。
+async function fetchBookInfoBatch(bookIds) {
+  const results = await Promise.all(
+    bookIds.map((bookId) =>
+      fetch(`https://www.googleapis.com/books/v1/volumes/${bookId}?key=${GOOGLE_BOOKS_API_KEY}`)
+        .then((res) => res.json())
+        .then((data) => (data.volumeInfo ? { id: bookId, info: data.volumeInfo } : null))
+        .catch(() => null)
+    )
+  );
+  return results.filter(Boolean);
 }
 
 async function computeRecommendations() {
@@ -682,56 +593,90 @@ async function computeRecommendations() {
     });
   });
 
+  // まず条件を満たす候補を評価順に並べ、上位プールを作る。
+  // そのプールの中からランダムに選ぶことで、読み込むたびに顔ぶれが変わるようにする。
   const ranked = [...candidateScores.entries()]
     .map(([bookId, { count, avgSum }]) => ({ bookId, count, avgAvg: avgSum / count }))
     .sort((a, b) => b.count - a.count || b.avgAvg - a.avgAvg)
-    .slice(0, 5);
+    .slice(0, RECOMMEND_POOL_SIZE);
 
-  // Google Books APIへの問い合わせも並列で実行する
-  const bookInfoResults = await Promise.all(
-    ranked.map(({ bookId }) =>
-      fetch(`https://www.googleapis.com/books/v1/volumes/${bookId}?key=${GOOGLE_BOOKS_API_KEY}`)
-        .then((res) => res.json())
-        .then((data) => (data.volumeInfo ? { id: bookId, info: data.volumeInfo } : null))
-        .catch(() => null)
-    )
-  );
+  const selected = shuffleArray(ranked).slice(0, RECOMMEND_DISPLAY_COUNT);
 
-  return bookInfoResults.filter(Boolean);
+  return fetchBookInfoBatch(selected.map((r) => r.bookId));
+}
+
+// 自分の好みに関係なく、共有されている感想全体から「いま人気の本」を集計する。
+async function computePopularBooks(excludeIds) {
+  let snap;
+  try {
+    snap = await getDocs(query(collection(db, 'impressions'), where('shared', '==', true)));
+  } catch {
+    return [];
+  }
+
+  const byBook = new Map();
+  snap.docs.forEach((d) => {
+    const data = d.data();
+    if (excludeIds.has(data.bookId)) return;
+    if (!byBook.has(data.bookId)) byBook.set(data.bookId, []);
+    byBook.get(data.bookId).push(data.stars);
+  });
+
+  const ranked = [...byBook.entries()]
+    .map(([bookId, starsArr]) => ({
+      bookId,
+      count: starsArr.length,
+      avg: starsArr.reduce((a, b) => a + b, 0) / starsArr.length,
+    }))
+    // 極端に評価の低い本まで「人気」として出さないよう、最低限のラインだけ設ける
+    .filter((entry) => entry.avg >= 3)
+    .sort((a, b) => b.count - a.count || b.avg - a.avg)
+    .slice(0, POPULAR_POOL_SIZE);
+
+  const selected = shuffleArray(ranked).slice(0, POPULAR_DISPLAY_COUNT);
+
+  return fetchBookInfoBatch(selected.map((r) => r.bookId));
 }
 
 async function refreshRecommendations() {
-  recommendedBooks = await computeRecommendations();
+  const myBookIdSet = new Set(booksCache.map((b) => b.id));
+
+  const [personal, popular] = await Promise.all([
+    computeRecommendations(),
+    computePopularBooks(myBookIdSet),
+  ]);
+
+  // 「おすすめの本」と「いま人気の本」は、あえて重複除外をしていない。
+  // 両方に同じ本が出てくることもある（それぞれ別の切り口の集計のため）。
+  recommendedBooks = personal;
+  popularBooks = popular;
 }
 
-function renderRecommendationsList() {
-  if (!recommendedList) return;
+function renderBookListInto(listEl, hintEl, books, emptyMessage) {
+  if (!listEl) return;
+  listEl.innerHTML = '';
 
-  recommendedList.innerHTML = '';
-
-  if (recommendedBooks.length === 0) {
-    noRecommendedHint.hidden = false;
+  if (books.length === 0) {
+    if (hintEl) {
+      hintEl.textContent = emptyMessage;
+      hintEl.hidden = false;
+    }
     return;
   }
 
-  noRecommendedHint.hidden = true;
+  if (hintEl) hintEl.hidden = true;
+  const registeredIds = new Set(loadBooks().map((b) => b.id));
 
-  const registeredIds = new Set(
-    loadBooks().map((b) => b.id)
-  );
-
-  recommendedBooks
+  books
     .filter((rec) => !registeredIds.has(rec.id))
     .forEach((rec) => {
       const info = rec.info;
       const cover = info.imageLinks?.thumbnail || '';
       const title = info.title || t('unknownTitle');
-      const author =
-        (info.authors || []).join(', ') || t('unknownAuthor');
+      const author = (info.authors || []).join(', ') || t('unknownAuthor');
 
       const li = document.createElement('li');
       li.className = 'recommend-item';
-
       li.innerHTML = `
         <img class="recommend-cover" src="${cover}" alt="">
         <div class="recommend-info">
@@ -742,43 +687,39 @@ function renderRecommendationsList() {
       `;
 
       const btn = li.querySelector('.btn-signup');
-
-      // 白いカード全体をクリック → 本の詳細
-      li.addEventListener('click', () => {
-        openBookPreview({
-          id: rec.id,
-          volumeInfo: info
-        });
-      });
-
-      // Addボタン → 直接登録
-      btn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-
+      btn.addEventListener('click', async () => {
         btn.disabled = true;
-
-        try {
-          await registerBook(rec.id, info);
-          renderRecommendationsList();
-        } catch (err) {
-          console.error(err);
-          btn.disabled = false;
-        }
+        await registerBook(rec.id, info);
+        renderRecommendationsList();
+        renderPopularList();
       });
 
-      recommendedList.appendChild(li);
+      listEl.appendChild(li);
     });
+}
+
+function renderRecommendationsList() {
+  renderBookListInto(
+    recommendedList,
+    noRecommendedHint,
+    recommendedBooks,
+    'まだおすすめできる本がありません。感想を記録して星4以上を付けると、趣味の近い人の評価をもとにおすすめが表示されます。'
+  );
+}
+
+function renderPopularList() {
+  renderBookListInto(
+    popularList,
+    noPopularHint,
+    popularBooks,
+    'まだ人気の本を集計できるほどのデータがありません。'
+  );
 }
 
 // ---------- 本の詳細 ----------
 
 function openDetail(bookId) {
-  console.log('openDetail開始:', bookId);
-
   const book = loadBooks().find((b) => b.id === bookId);
-
-  console.log('見つかった本:', book);
-
   if (!book) return;
 
   state.currentBookId = bookId;
@@ -792,12 +733,8 @@ function openDetail(bookId) {
     btn.classList.toggle('is-current', btn.dataset.setStatus === book.status);
   });
 
-  console.log('詳細パネルを開く直前');
-
   renderImpressions(bookId);
   openPanel(detailPanel);
-
-  console.log('detailPanel.hidden:', detailPanel.hidden);
 }
 
 detailActions.addEventListener('click', async (e) => {
@@ -851,9 +788,7 @@ function renderImpressions(bookId) {
       ${imp.note ? `<p class="impression-note">${escapeHtml(imp.note)}</p>` : ''}
       <p class="impression-date">${formatDate(imp.date)}</p>
       <div class="impression-item-actions">
-        <button class="btn-share ${imp.shared ? 'is-shared' : ''}" data-share-id="${imp.id}">
-  　　　　${imp.shared ? t('sharing') : t('share')}
-　　　　　</button>
+        <button class="btn-share ${imp.shared ? 'is-shared' : ''}" data-share-id="${imp.id}">${imp.shared ? '共有中' : '共有する'}</button>
         <button class="btn-edit" data-edit-id="${imp.id}">${t('edit')}</button>
         <button class="btn-delete" data-delete-id="${imp.id}">${t('delete')}</button>
       </div>
@@ -1170,6 +1105,7 @@ saveImpressionBtn.addEventListener('click', async () => {
   await refreshRecommendations();
   if (!homeDashboard.hidden) {
     renderRecommendationsList();
+    renderPopularList();
   }
 });
 
