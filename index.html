@@ -149,9 +149,62 @@
     autocomplete="off"
   >
 
-  <button type="submit" id="searchButton" disabled>
-    検索
-  </button>
+<!-- ===== 詳細検索 ===== -->
+<button
+  type="button"
+  id="advancedSearchToggle"
+  class="advanced-search-toggle">
+  詳細検索 ▼
+</button>
+
+<div id="advancedSearchFields" class="advanced-search-fields" hidden>
+
+  <!-- ジャンル -->
+  <label for="genreInput">ジャンル</label>
+  <select id="genreInput">
+    <option value="">指定なし</option>
+    <option value="fiction">小説</option>
+    <option value="mystery">ミステリー</option>
+    <option value="romance">恋愛</option>
+    <option value="fantasy">ファンタジー</option>
+    <option value="science fiction">SF</option>
+    <option value="business">ビジネス</option>
+    <option value="self-help">自己啓発</option>
+    <option value="history">歴史</option>
+    <option value="science">科学</option>
+    <option value="computers">コンピュータ</option>
+  </select>
+
+  <!-- 出版年代 -->
+  <label for="decadeInput">出版年代</label>
+  <select id="decadeInput">
+    <option value="">指定なし</option>
+    <option value="2020">2020年代</option>
+    <option value="2010">2010年代</option>
+    <option value="2000">2000年代</option>
+    <option value="1990">1990年代</option>
+    <option value="1980">1980年代</option>
+  </select>
+
+  <!-- 言語 -->
+  <label for="languageInput">言語</label>
+  <select id="languageInput">
+    <option value="">指定なし</option>
+    <option value="ja">日本語</option>
+    <option value="en">英語</option>
+    <option value="vi">ベトナム語</option>
+  </select>
+
+</div>
+
+  <button
+  id="searchButton"
+  data-i18n="searchButton"
+  disabled
+>
+  検索
+</button>
+
 
 </form>
 
