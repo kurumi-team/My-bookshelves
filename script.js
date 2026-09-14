@@ -337,23 +337,75 @@ backHomeBtn.addEventListener('click', () => {
 // ---------- 本棚の描画 ----------
 
 function renderShelf() {
-  const books = loadBooks().filter((b) => b.status === state.activeShelf);
+  const books = loadBooks().filter(
+    (b) => b.status === state.activeShelf
+  );
+
   shelfEl.innerHTML = '';
 
   if (books.length === 0) {
     emptyStateEl.hidden = false;
-  } else {
-    emptyStateEl.hidden = true;
-    books.forEach((book) => {
-      const spine = document.createElement('button');
-      spine.className = 'book-spine';
-      spine.innerHTML = `<span>${escapeHtml(book.title)}</span>`;
-      spine.addEventListener('click', () => {
-  console.log('本をクリック:', book.id, book.title);
-  openDetail(book.id);
-});
-      shelfEl.appendChild(spine);
+    return;
+  }
+
+  emptyStateEl.hidden = true;
+
+  const booksPerRow = 8;
+
+  for (let i = 0; i < books.length; i += booksPerRow) {
+    const rowBooks = books.slice(i, i + booksPerRow);
+
+    const shelfRow = document.createElement('div');
+    shelfRow.className = 'shelf-row';
+
+    const booksContainer = document.createElement('div');
+    booksContainer.className = 'shelf-row-books';
+
+    rowBooks.forEach((book) => {
+      const bookItem = document.createElement('button');
+      bookItem.className = 'bookshelf-book';
+
+      bookItem.innerHTML = `
+        <div class="bookshelf-cover-wrap">
+          ${
+            book.cover
+              ? `<img
+                  class="bookshelf-cover"
+                  src="${book.cover}"
+                  alt="${escapeHtml(book.title)}"
+                >`
+              : `<div class="bookshelf-cover bookshelf-cover-placeholder">
+                  ${escapeHtml(book.title)}
+                </div>`
+          }
+        </div>
+
+        <div class="bookshelf-info">
+          <span class="bookshelf-title">
+            ${escapeHtml(book.title)}
+          </span>
+
+          <span class="bookshelf-author">
+            ${escapeHtml(book.author || '')}
+          </span>
+        </div>
+      `;
+
+      bookItem.addEventListener('click', () => {
+        openDetail(book.id);
+      });
+
+      booksContainer.appendChild(bookItem);
     });
+
+    shelfRow.appendChild(booksContainer);
+
+    const shelfBoard = document.createElement('div');
+    shelfBoard.className = 'shelf-board';
+
+    shelfRow.appendChild(shelfBoard);
+
+    shelfEl.appendChild(shelfRow);
   }
 }
 
