@@ -489,6 +489,22 @@ if (language) {
 
     const data = await res.json();
 
+console.log('検索URL:', res.url);
+console.log('Google Books APIの結果:', data);
+
+if (!res.ok) {
+  console.error('Google Books APIエラー:', res.status, data);
+
+  if (res.status === 429) {
+    searchHint.textContent =
+      '検索回数の上限に達しました。少し時間をおいてから再度お試しください。';
+  } else {
+    searchHint.textContent =
+      '検索中にエラーが発生しました。';
+  }
+
+  return;
+}
 let filteredItems = data.items || [];
 
 // 出版年代で絞り込む
@@ -760,6 +776,8 @@ function shuffleArray(list) {
 }
 
 async function fetchBookInfoBatch(bookIds) {
+console.log('おすすめ用API取得冊数:', bookIds.length);
+
   const results = await Promise.all(
     bookIds.map((bookId) =>
       fetch(`https://www.googleapis.com/books/v1/volumes/${bookId}?key=${GOOGLE_BOOKS_API_KEY}`)
