@@ -775,18 +775,29 @@ function shuffleArray(list) {
   return arr;
 }
 
-async function fetchBookInfoBatch(bookIds) {
-console.log('おすすめ用API取得冊数:', bookIds.length);
+// 一度取得した本の情報は覚えておき、同じ本を何度も取得し直さないようにする。
+// （候補プールの中身は毎回ほぼ同じ本が並ぶため、これだけでAPI呼び出し数がかなり減る）
+const bookInfoCache = new Map();
 
-  const results = await Promise.all(
-    bookIds.map((bookId) =>
+async function fetchBookInfoBatch(bookIds) {
+  const uncachedIds = bookIds.filter((id) => !bookInfoCache.has(id));
+
+  console.log('おすすめ用API取得冊数:', uncachedIds.length, '（キャッシュ済み:', bookIds.length - uncachedIds.length, '）');
+
+  await Promise.all(
+    uncachedIds.map((bookId) =>
       fetch(`https://www.googleapis.com/books/v1/volumes/${bookId}?key=${GOOGLE_BOOKS_API_KEY}`)
         .then((res) => res.json())
-        .then((data) => (data.volumeInfo ? { id: bookId, info: data.volumeInfo } : null))
-        .catch(() => null)
+        .then((data) => {
+          bookInfoCache.set(bookId, data.volumeInfo ? { id: bookId, info: data.volumeInfo } : null);
+        })
+        .catch(() => {
+          bookInfoCache.set(bookId, null);
+        })
     )
   );
-  return results.filter(Boolean);
+
+  return bookIds.map((id) => bookInfoCache.get(id)).filter(Boolean);
 }
 
 async function computeRecommendations() {
