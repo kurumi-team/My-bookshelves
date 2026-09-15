@@ -141,9 +141,9 @@ advancedSearchToggle.addEventListener('click', () => {
   advancedSearchFields.hidden = !advancedSearchFields.hidden;
 
   if (advancedSearchFields.hidden) {
-    advancedSearchToggle.textContent = '詳細検索 ▼';
+    advancedSearchToggle.textContent = t('advancedSearchShow');
   } else {
-    advancedSearchToggle.textContent = '詳細検索 ▲';
+    advancedSearchToggle.textContent = t('advancedSearchHide');
   }
 });
 
@@ -215,6 +215,7 @@ function refreshDynamicView() {
   searchResultsEl.querySelectorAll('.btn-signup').forEach((btn) => {
     btn.textContent = btn.disabled ? t('addedLabel') : t('signUpButton');
   });
+  advancedSearchToggle.textContent = advancedSearchFields.hidden ? t('advancedSearchShow') : t('advancedSearchHide');
 }
 
 langSwitch.addEventListener('click', (e) => {
@@ -565,21 +566,21 @@ function openBookPreview(item) {
   const info = item.volumeInfo || {};
 
   previewBookTitle.textContent =
-    info.title || 'タイトル不明';
+    info.title || t('unknownTitle');
 
   previewBookAuthor.textContent =
     info.authors
       ? info.authors.join(', ')
-      : '著者不明';
+      : t('unknownAuthor');
 
   previewBookPublished.textContent =
     info.publishedDate
-      ? `出版日：${info.publishedDate}`
-      : '出版日：不明';
+      ? `${t('publishedOn')}${info.publishedDate}`
+      : `${t('publishedOn')}${t('unknownDate')}`;
 
   previewBookDescription.textContent =
     info.description ||
-    'この本の説明は登録されていません。';
+    t('noDescription');
 
 
   const imageUrl =
@@ -973,7 +974,7 @@ function renderRecommendationsList() {
     recommendedList,
     noRecommendedHint,
     recommendedBooks,
-    'まだおすすめできる本がありません。感想を記録して星4以上を付けると、趣味の近い人の評価をもとにおすすめが表示されます。'
+    t('noRecommendedBooks')
   );
 }
 
@@ -982,7 +983,7 @@ function renderPopularList() {
     popularList,
     noPopularHint,
     popularBooks,
-    'まだ人気の本を集計できるほどのデータがありません。'
+    t('noPopularBooks')
   );
 }
 
@@ -1058,7 +1059,7 @@ function renderImpressions(bookId) {
       ${imp.note ? `<p class="impression-note">${escapeHtml(imp.note)}</p>` : ''}
       <p class="impression-date">${formatDate(imp.date)}</p>
       <div class="impression-item-actions">
-        <button class="btn-share ${imp.shared ? 'is-shared' : ''}" data-share-id="${imp.id}">${imp.shared ? '共有中' : '共有する'}</button>
+        <button class="btn-share ${imp.shared ? 'is-shared' : ''}" data-share-id="${imp.id}">${imp.shared ? t('sharing') : t('share')}</button>
         <button class="btn-edit" data-edit-id="${imp.id}">${t('edit')}</button>
         <button class="btn-delete" data-delete-id="${imp.id}">${t('delete')}</button>
       </div>
