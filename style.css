@@ -1262,7 +1262,7 @@ button.advanced-search-toggle {
   .shelf-row-books {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 18px;
-    padding: 20px 12px 0;
+    padding: 0 12px;
   }
 
   /* 本1冊 */
@@ -1274,9 +1274,14 @@ button.advanced-search-toggle {
   /* 表紙 */
   .bookshelf-cover {
     width: 100%;
-    height: 180px;
+    height: 150px;
     object-fit: contain;
   }
+
+  /* 表紙を囲む部分 */
+.bookshelf-cover-wrap {
+    height: 150px;
+}
 
   /* タイトル */
   .bookshelf-title {
