@@ -1240,3 +1240,48 @@ button.advanced-search-toggle {
     0 6px 8px rgba(55, 30, 15, 0.35),
     inset 0 2px 2px rgba(255, 255, 255, 0.2);
 }
+
+/* =========================
+   スマホ用 本棚レイアウト
+   ========================= */
+
+@media (max-width: 600px) {
+
+  /* 1段の本 */
+  .shelf-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    padding: 20px 12px 0;
+  }
+
+  /* 本1冊 */
+  .bookshelf-book {
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* 表紙 */
+  .bookshelf-cover {
+    width: 100%;
+    height: 180px;
+    object-fit: contain;
+  }
+
+  /* タイトル */
+  .bookshelf-title {
+    width: 100%;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* 著者 */
+  .bookshelf-author {
+    width: 100%;
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
