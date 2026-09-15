@@ -32,11 +32,6 @@ let state = {
 };
 
 // ---------- Firestoreとの読み書き ----------
-// 画面描画は同期的な配列操作のままにしたいので、ログイン時に一度
-// Firestoreから全件読み込んでキャッシュ配列(booksCache / impressionsCache)を作り、
-// 以降の読み取りはこのキャッシュを見る。書き込み操作のたびに、
-// キャッシュとFirestoreの両方を更新する。
-
 function loadBooks() {
   return booksCache;
 }
@@ -49,8 +44,6 @@ function generateId() {
   return `imp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-// ログイン確認後にindex.htmlから呼び出す初期化処理。
-// ユーザーの本棚・感想データをFirestoreから読み込んでから、最初の描画を行う。
 export async function initApp(uid) {
   currentUid = uid;
 
@@ -76,10 +69,10 @@ export async function initApp(uid) {
   applyStaticTranslations();
   renderHome();
 
-  // おすすめの計算は画面表示をブロックしないよう、バックグラウンドで実行する
   refreshRecommendations().then(() => {
     if (!homeDashboard.hidden) {
       renderRecommendationsList();
+      renderPopularList();
     }
   });
 }
@@ -97,6 +90,8 @@ const recentBooksList = document.getElementById('recentBooksList');
 const noRecentBooksEl = document.getElementById('noRecentBooks');
 const recommendedList = document.getElementById('recommendedList');
 const noRecommendedHint = document.getElementById('noRecommendedHint');
+const popularList = document.getElementById('popularList');
+const noPopularHint = document.getElementById('noPopularHint');
 
 const unreadCount = document.getElementById('unreadCount');
 const readingCount = document.getElementById('readingCount');
@@ -195,7 +190,6 @@ function applyStaticTranslations() {
 }
 
 function refreshDynamicView() {
-  // 開いている画面に応じて、翻訳が必要な動的テキストを再描画する
   if (!homeDashboard.hidden) {
     renderHome();
   }
@@ -218,7 +212,6 @@ function refreshDynamicView() {
       }
     }
   }
-  // 検索結果が表示中なら、ボタンのラベルだけ翻訳し直す
   searchResultsEl.querySelectorAll('.btn-signup').forEach((btn) => {
     btn.textContent = btn.disabled ? t('addedLabel') : t('signUpButton');
   });
@@ -261,15 +254,13 @@ function renderHome() {
 
   renderRecentBooks();
   renderRecommendationsList();
+  renderPopularList();
 }
 
-// 本ごとに最新の感想日付を1つだけ求め、新しい順に直近5冊を表示する。
-// クリックするとその本の詳細画面が開く。
 function renderRecentBooks() {
   const books = loadBooks();
   const impressions = loadImpressions();
 
-  // 本ごとに、一番新しい感想の日付だけを残す
   const latestDateByBook = new Map();
   impressions.forEach((imp) => {
     const current = latestDateByBook.get(imp.bookId);
@@ -282,7 +273,7 @@ function renderRecentBooks() {
     .map(([bookId, date]) => ({ book: books.find((b) => b.id === bookId), date }))
     .filter((entry) => entry.book)
     .sort((a, b) => new Date(b.date) - new Date(a.date))
-    .slice(0, 5);
+    .slice(0, 10);
 
   recentBooksList.innerHTML = '';
 
@@ -734,22 +725,17 @@ async function registerBook(id, info) {
   if (state.activeShelf === 'unread') {
     renderShelf();
   }
-  renderHome();
 }
 
-
-
 // ---------- おすすめの本（趣味が近い人の評価をもとに） ----------
-// アルゴリズム:
-// 1. 自分の感想を本ごとに平均し、平均★4以上の本を「自分が好きな本」とする
-// 2. その本について、他の人が共有した感想（shared:true）を集め、
-//    その人ごとの平均が★4以上なら「趣味が近い人」とみなす
-// 3. 趣味が近い人たちが共有している、自分がまだ持っていない本のうち、
-//    平均★4以上のものを、その人数が多い順におすすめとして表示する
-// 4. 本の情報（タイトル・著者・表紙）はFirestoreではなくGoogle Books APIから直接取得する
-//    （他人のuserBooksは読む権限がないため）
+
+const RECOMMEND_DISPLAY_COUNT = 10;
+const RECOMMEND_POOL_SIZE = 50;
+const POPULAR_DISPLAY_COUNT = 10;
+const POPULAR_POOL_SIZE = 50;
 
 let recommendedBooks = [];
+let popularBooks = [];
 
 function averageStarsByBook(impressionsList) {
   const totals = new Map();
@@ -764,6 +750,27 @@ function averageStarsByBook(impressionsList) {
   return averages;
 }
 
+function shuffleArray(list) {
+  const arr = [...list];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+async function fetchBookInfoBatch(bookIds) {
+  const results = await Promise.all(
+    bookIds.map((bookId) =>
+      fetch(`https://www.googleapis.com/books/v1/volumes/${bookId}?key=${GOOGLE_BOOKS_API_KEY}`)
+        .then((res) => res.json())
+        .then((data) => (data.volumeInfo ? { id: bookId, info: data.volumeInfo } : null))
+        .catch(() => null)
+    )
+  );
+  return results.filter(Boolean);
+}
+
 async function computeRecommendations() {
   const myAverages = averageStarsByBook(impressionsCache);
   const myLikedBookIds = [...myAverages.entries()]
@@ -774,8 +781,6 @@ async function computeRecommendations() {
 
   const myBookIdSet = new Set(booksCache.map((b) => b.id));
 
-  // 趣味が近い人（自分が好きな本を、同じく高く評価している人）を集める
-  // 本ごとの問い合わせは、順番に待たず並列で実行する
   const likedBookSnaps = await Promise.all(
     myLikedBookIds.map((bookId) =>
       getDocs(
@@ -802,8 +807,6 @@ async function computeRecommendations() {
 
   if (similarUids.size === 0) return [];
 
-  // 趣味が近い人たちが高評価している、自分がまだ持っていない本を集める
-  // こちらもユーザーごとの問い合わせを並列で実行する
   const userSnaps = await Promise.all(
     [...similarUids].map((uid) =>
       getDocs(
@@ -835,53 +838,81 @@ async function computeRecommendations() {
   const ranked = [...candidateScores.entries()]
     .map(([bookId, { count, avgSum }]) => ({ bookId, count, avgAvg: avgSum / count }))
     .sort((a, b) => b.count - a.count || b.avgAvg - a.avgAvg)
-    .slice(0, 5);
+    .slice(0, RECOMMEND_POOL_SIZE);
 
-  // Google Books APIへの問い合わせも並列で実行する
-  const bookInfoResults = await Promise.all(
-    ranked.map(({ bookId }) =>
-      fetch(`https://www.googleapis.com/books/v1/volumes/${bookId}?key=${GOOGLE_BOOKS_API_KEY}`)
-        .then((res) => res.json())
-        .then((data) => (data.volumeInfo ? { id: bookId, info: data.volumeInfo } : null))
-        .catch(() => null)
-    )
-  );
+  const selected = shuffleArray(ranked).slice(0, RECOMMEND_DISPLAY_COUNT);
 
-  return bookInfoResults.filter(Boolean);
+  return fetchBookInfoBatch(selected.map((r) => r.bookId));
+}
+
+async function computePopularBooks(excludeIds) {
+  let snap;
+  try {
+    snap = await getDocs(query(collection(db, 'impressions'), where('shared', '==', true)));
+  } catch {
+    return [];
+  }
+
+  const byBook = new Map();
+  snap.docs.forEach((d) => {
+    const data = d.data();
+    if (excludeIds.has(data.bookId)) return;
+    if (!byBook.has(data.bookId)) byBook.set(data.bookId, []);
+    byBook.get(data.bookId).push(data.stars);
+  });
+
+  const ranked = [...byBook.entries()]
+    .map(([bookId, starsArr]) => ({
+      bookId,
+      count: starsArr.length,
+      avg: starsArr.reduce((a, b) => a + b, 0) / starsArr.length,
+    }))
+    .filter((entry) => entry.avg >= 3)
+    .sort((a, b) => b.count - a.count || b.avg - a.avg)
+    .slice(0, POPULAR_POOL_SIZE);
+
+  const selected = shuffleArray(ranked).slice(0, POPULAR_DISPLAY_COUNT);
+
+  return fetchBookInfoBatch(selected.map((r) => r.bookId));
 }
 
 async function refreshRecommendations() {
-  recommendedBooks = await computeRecommendations();
+  const myBookIdSet = new Set(booksCache.map((b) => b.id));
+
+  const [personal, popular] = await Promise.all([
+    computeRecommendations(),
+    computePopularBooks(myBookIdSet),
+  ]);
+
+  recommendedBooks = personal;
+  popularBooks = popular;
 }
 
-function renderRecommendationsList() {
-  if (!recommendedList) return;
+function renderBookListInto(listEl, hintEl, books, emptyMessage) {
+  if (!listEl) return;
+  listEl.innerHTML = '';
 
-  recommendedList.innerHTML = '';
-
-  if (recommendedBooks.length === 0) {
-    noRecommendedHint.hidden = false;
+  if (books.length === 0) {
+    if (hintEl) {
+      hintEl.textContent = emptyMessage;
+      hintEl.hidden = false;
+    }
     return;
   }
 
-  noRecommendedHint.hidden = true;
+  if (hintEl) hintEl.hidden = true;
+  const registeredIds = new Set(loadBooks().map((b) => b.id));
 
-  const registeredIds = new Set(
-    loadBooks().map((b) => b.id)
-  );
-
-  recommendedBooks
+  books
     .filter((rec) => !registeredIds.has(rec.id))
     .forEach((rec) => {
       const info = rec.info;
       const cover = info.imageLinks?.thumbnail || '';
       const title = info.title || t('unknownTitle');
-      const author =
-        (info.authors || []).join(', ') || t('unknownAuthor');
+      const author = (info.authors || []).join(', ') || t('unknownAuthor');
 
       const li = document.createElement('li');
       li.className = 'recommend-item';
-
       li.innerHTML = `
         <img class="recommend-cover" src="${cover}" alt="">
         <div class="recommend-info">
@@ -892,43 +923,44 @@ function renderRecommendationsList() {
       `;
 
       const btn = li.querySelector('.btn-signup');
-
-      // 白いカード全体をクリック → 本の詳細
-      li.addEventListener('click', () => {
-        openBookPreview({
-          id: rec.id,
-          volumeInfo: info
-        });
-      });
-
-      // Addボタン → 直接登録
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
-
         btn.disabled = true;
-
-        try {
-          await registerBook(rec.id, info);
-          renderRecommendationsList();
-        } catch (err) {
-          console.error(err);
-          btn.disabled = false;
-        }
+        await registerBook(rec.id, info);
+        renderRecommendationsList();
+        renderPopularList();
       });
 
-      recommendedList.appendChild(li);
+      li.addEventListener('click', () => {
+        openBookPreview({ id: rec.id, volumeInfo: info });
+      });
+
+      listEl.appendChild(li);
     });
+}
+
+function renderRecommendationsList() {
+  renderBookListInto(
+    recommendedList,
+    noRecommendedHint,
+    recommendedBooks,
+    'まだおすすめできる本がありません。感想を記録して星4以上を付けると、趣味の近い人の評価をもとにおすすめが表示されます。'
+  );
+}
+
+function renderPopularList() {
+  renderBookListInto(
+    popularList,
+    noPopularHint,
+    popularBooks,
+    'まだ人気の本を集計できるほどのデータがありません。'
+  );
 }
 
 // ---------- 本の詳細 ----------
 
 function openDetail(bookId) {
-  console.log('openDetail開始:', bookId);
-
   const book = loadBooks().find((b) => b.id === bookId);
-
-  console.log('見つかった本:', book);
-
   if (!book) return;
 
   state.currentBookId = bookId;
@@ -942,12 +974,8 @@ function openDetail(bookId) {
     btn.classList.toggle('is-current', btn.dataset.setStatus === book.status);
   });
 
-  console.log('詳細パネルを開く直前');
-
   renderImpressions(bookId);
   openPanel(detailPanel);
-
-  console.log('detailPanel.hidden:', detailPanel.hidden);
 }
 
 detailActions.addEventListener('click', async (e) => {
@@ -1001,9 +1029,7 @@ function renderImpressions(bookId) {
       ${imp.note ? `<p class="impression-note">${escapeHtml(imp.note)}</p>` : ''}
       <p class="impression-date">${formatDate(imp.date)}</p>
       <div class="impression-item-actions">
-        <button class="btn-share ${imp.shared ? 'is-shared' : ''}" data-share-id="${imp.id}">
-  　　　　${imp.shared ? t('sharing') : t('share')}
-　　　　　</button>
+        <button class="btn-share ${imp.shared ? 'is-shared' : ''}" data-share-id="${imp.id}">${imp.shared ? '共有中' : '共有する'}</button>
         <button class="btn-edit" data-edit-id="${imp.id}">${t('edit')}</button>
         <button class="btn-delete" data-delete-id="${imp.id}">${t('delete')}</button>
       </div>
@@ -1054,7 +1080,6 @@ document.getElementById('leaveImpressionBtn').addEventListener('click', () => {
 });
 
 // ---------- 他の人が共有した感想を見る ----------
-// ユーザー名は毎回読み込むと無駄が多いので、一度取得したらキャッシュしておく。
 const profileCache = new Map();
 
 async function getProfileCached(uid) {
@@ -1320,6 +1345,7 @@ saveImpressionBtn.addEventListener('click', async () => {
   await refreshRecommendations();
   if (!homeDashboard.hidden) {
     renderRecommendationsList();
+    renderPopularList();
   }
 });
 
