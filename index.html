@@ -30,7 +30,7 @@
         </svg>
       </button>
     </div>
-    <button class="btn-logout" id="logoutBtn">ログアウト</button>
+    <button class="btn-logout" id="logoutBtn" data-i18n="logout">ログアウト</button>
     <button class="btn-add" id="openSearchBtn" data-i18n="addBook" aria-label="本を登録する">＋ 本を登録</button>
   </header>
 
@@ -62,15 +62,15 @@
     </div>
 
     <div class="recommend-books">
-      <h3>おすすめの本</h3>
+      <h3 data-i18n="recommendedBooks">おすすめの本</h3>
       <ul id="recommendedList" class="recommend-list"></ul>
-      <p class="hint" id="noRecommendedHint" hidden>まだおすすめできる本がありません。感想を記録して星4以上を付けると、趣味の近い人の評価をもとにおすすめが表示されます。</p>
+      <p class="hint" id="noRecommendedHint" data-i18n="noRecommendedBooks" hidden>まだおすすめできる本がありません。感想を記録して星4以上を付けると、趣味の近い人の評価をもとにおすすめが表示されます。</p>
     </div>
 
     <div class="recommend-books">
-      <h3>いま人気の本</h3>
+      <h3 data-i18n="popularBooks">いま人気の本</h3>
       <ul id="popularList" class="recommend-list"></ul>
-      <p class="hint" id="noPopularHint" hidden>まだ人気の本を集計できるほどのデータがありません。</p>
+      <p class="hint" id="noPopularHint" data-i18n="noPopularBooks" hidden>まだ人気の本を集計できるほどのデータがありません。</p>
     </div>
   </section>
 
@@ -96,7 +96,7 @@
   <!-- ===== 未登録の本のプレビューパネル ===== -->
   <section class="panel" id="bookPreviewPanel" hidden>
     <div class="panel-inner book-preview-inner">
-      <button class="btn-close" data-close-panel>閉じる</button>
+      <button class="btn-close" data-close-panel data-i18n="close">閉じる</button>
 
       <div class="book-preview-header">
         <img class="preview-book-image" id="previewBookImage" alt="">
@@ -108,11 +108,11 @@
       </div>
 
       <div class="book-preview-description">
-        <h3>概要</h3>
+        <h3 data-i18n="overview">概要</h3>
         <p id="previewBookDescription"></p>
       </div>
 
-      <button class="preview-shared-btn" id="previewViewSharedBtn">他の人の感想を見る</button>
+      <button class="preview-shared-btn" id="previewViewSharedBtn" data-i18n="viewOthersImpressions">他の人の感想を見る</button>
       <button class="preview-register-btn" id="previewRegisterBtn">登録する</button>
     </div>
   </section>
@@ -120,32 +120,35 @@
   <!-- ===== 検索パネル ===== -->
   <section class="panel" id="searchPanel" hidden>
     <div class="panel-inner">
-      <button class="btn-close" data-close-panel>閉じる</button>
-      <h2 class="panel-title">本を検索</h2>
+      <button class="btn-close" data-close-panel data-i18n="close">閉じる</button>
+      <h2 class="panel-title" data-i18n="searchTitle">本を検索</h2>
       
 <form id="searchForm" class="search-form">
 
-  <label for="titleInput">Title</label>
+  <label for="titleInput" data-i18n="titleLabel">Title</label>
   <input
     type="text"
     id="titleInput"
     placeholder="タイトル・タイトルの一部"
+    data-i18n-placeholder="titlePlaceholder"
     autocomplete="off"
   >
 
-  <label for="authorInput">Author</label>
+  <label for="authorInput" data-i18n="authorLabel">Author</label>
   <input
     type="text"
     id="authorInput"
     placeholder="著者名"
+    data-i18n-placeholder="authorPlaceholder"
     autocomplete="off"
   >
 
-  <label for="keywordInput">Keyword</label>
+  <label for="keywordInput" data-i18n="keywordLabel">Keyword</label>
   <input
     type="text"
     id="keywordInput"
     placeholder="覚えているフレーズ・キーワード"
+    data-i18n-placeholder="keywordPlaceholder"
     autocomplete="off"
   >
 
@@ -160,55 +163,50 @@
 <div id="advancedSearchFields" class="advanced-search-fields" hidden>
 
   <!-- ジャンル -->
-  <label for="genreInput">ジャンル</label>
+  <label for="genreInput" data-i18n="genreLabel">ジャンル</label>
   <select id="genreInput">
-    <option value="">指定なし</option>
-    <option value="fiction">小説</option>
-    <option value="mystery">ミステリー</option>
-    <option value="romance">恋愛</option>
-    <option value="fantasy">ファンタジー</option>
-    <option value="science fiction">SF</option>
-    <option value="business">ビジネス</option>
-    <option value="self-help">自己啓発</option>
-    <option value="history">歴史</option>
-    <option value="science">科学</option>
-    <option value="computers">コンピュータ</option>
+    <option value="" data-i18n="selectNone">指定なし</option>
+    <option value="fiction" data-i18n="genreFiction">小説</option>
+    <option value="mystery" data-i18n="genreMystery">ミステリー</option>
+    <option value="romance" data-i18n="genreRomance">恋愛</option>
+    <option value="fantasy" data-i18n="genreFantasy">ファンタジー</option>
+    <option value="science fiction" data-i18n="genreSciFi">SF</option>
+    <option value="business" data-i18n="genreBusiness">ビジネス</option>
+    <option value="self-help" data-i18n="genreSelfHelp">自己啓発</option>
+    <option value="history" data-i18n="genreHistory">歴史</option>
+    <option value="science" data-i18n="genreScience">科学</option>
+    <option value="computers" data-i18n="genreComputers">コンピュータ</option>
   </select>
 
   <!-- 出版年代 -->
-  <label for="decadeInput">出版年代</label>
+  <label for="decadeInput" data-i18n="decadeLabel">出版年代</label>
   <select id="decadeInput">
-    <option value="">指定なし</option>
-    <option value="2020">2020年代</option>
-    <option value="2010">2010年代</option>
-    <option value="2000">2000年代</option>
-    <option value="1990">1990年代</option>
-    <option value="1980">1980年代</option>
+    <option value="" data-i18n="selectNone">指定なし</option>
+    <option value="2020" data-i18n="decade2020s">2020年代</option>
+    <option value="2010" data-i18n="decade2010s">2010年代</option>
+    <option value="2000" data-i18n="decade2000s">2000年代</option>
+    <option value="1990" data-i18n="decade1990s">1990年代</option>
+    <option value="1980" data-i18n="decade1980s">1980年代</option>
   </select>
 
   <!-- 言語 -->
-  <label for="languageInput">言語</label>
+  <label for="languageInput" data-i18n="languageLabel">言語</label>
   <select id="languageInput">
-    <option value="">指定なし</option>
-    <option value="ja">日本語</option>
-    <option value="en">英語</option>
-    <option value="vi">ベトナム語</option>
+    <option value="" data-i18n="selectNone">指定なし</option>
+    <option value="ja" data-i18n="languageJa">日本語</option>
+    <option value="en" data-i18n="languageEn">英語</option>
+    <option value="vi" data-i18n="languageVi">ベトナム語</option>
   </select>
 
 </div>
 
-  <button
-  id="searchButton"
-  data-i18n="searchButton"
-  disabled
->
-  検索
-</button>
-
+  <button type="submit" id="searchButton" data-i18n="searchButton" disabled>
+    検索
+  </button>
 
 </form>
 
-      <p class="hint" id="searchHint">読みたい本のタイトルを入力してください。</p>
+      <p class="hint" id="searchHint" data-i18n="searchHintDefault">読みたい本のタイトルを入力してください。</p>
       <ul class="search-results" id="searchResults"></ul>
     </div>
   </section>
@@ -233,7 +231,7 @@
 
       <button class="btn-primary" id="leaveImpressionBtn" data-i18n="leaveImpression">感想を残す</button>
 
-      <button class="btn-secondary" id="viewSharedBtn">他の人の感想を見る</button>
+      <button class="btn-secondary" id="viewSharedBtn" data-i18n="viewOthersImpressions">他の人の感想を見る</button>
 
 　　　　<button class="btn-delete" id="deleteBookBtn" data-i18n="deleteBook">本棚から削除</button>
 
@@ -285,28 +283,28 @@
   <!-- ===== 他の人が共有した感想パネル ===== -->
   <section class="panel" id="sharedImpressionsPanel" hidden>
     <div class="panel-inner">
-      <button class="btn-close" data-close-panel>閉じる</button>
-      <h2 class="panel-title">他の人の感想</h2>
+      <button class="btn-close" data-close-panel data-i18n="close">閉じる</button>
+      <h2 class="panel-title" data-i18n="othersImpressions">他の人の感想</h2>
       <ul class="impression-list" id="sharedImpressionList"></ul>
-      <p class="hint" id="noSharedImpressionHint" hidden>まだ共有されている感想がありません。</p>
+      <p class="hint" id="noSharedImpressionHint" data-i18n="othersImpressionsEmpty" hidden>まだ共有されている感想がありません。</p>
     </div>
   </section>
 
   <!-- ===== アカウントパネル（ユーザー名の表示・変更） ===== -->
   <section class="panel" id="usernamePanel" hidden>
     <div class="panel-inner">
-      <button class="btn-close" data-close-panel>閉じる</button>
-      <h2 class="panel-title">アカウント</h2>
+      <button class="btn-close" data-close-panel data-i18n="close">閉じる</button>
+      <h2 class="panel-title" data-i18n="accountTitle">アカウント</h2>
 
-      <p class="current-username">現在のユーザー名：<strong id="currentUsernameText"></strong></p>
+      <p class="current-username"><span data-i18n="currentUsername">現在のユーザー名：</span><strong id="currentUsernameText"></strong></p>
 
-      <label class="field-label" for="newUsernameInput">新しいユーザー名</label>
+      <label class="field-label" for="newUsernameInput" data-i18n="newUsername">新しいユーザー名</label>
       <input type="text" id="newUsernameInput" class="username-input" maxlength="30">
-      <p class="hint">他の人に表示される名前です。共有された感想の投稿者名としても使われます。</p>
+      <p class="hint" data-i18n="usernameHelp">他の人に表示される名前です。共有された感想の投稿者名としても使われます。</p>
 
       <p class="auth-error" id="usernameError" hidden></p>
 
-      <button class="btn-primary" id="saveUsernameBtn">保存</button>
+      <button class="btn-primary" id="saveUsernameBtn" data-i18n="save">保存</button>
     </div>
   </section>
 
