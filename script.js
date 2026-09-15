@@ -341,7 +341,7 @@ function renderShelf() {
 
   emptyStateEl.hidden = true;
 
-  const booksPerRow = 8;
+  const booksPerRow = window.innerWidth <= 600 ? 3 : 8;
 
   for (let i = 0; i < books.length; i += booksPerRow) {
     const rowBooks = books.slice(i, i + booksPerRow);
