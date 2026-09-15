@@ -149,6 +149,8 @@ button {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-height: 230px;
+  overflow-y: auto;
 }
 
 .recent-book-item {
@@ -203,6 +205,8 @@ button {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  max-height: 410px;
+  overflow-y: auto;
 }
 
 .recommend-item {
@@ -314,6 +318,7 @@ button {
 .book-spine span {
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -881,6 +886,14 @@ button {
 
 .book-preview-inner {
   max-width: 720px;
+}
+
+#bookPreviewPanel {
+  z-index: 20;
+}
+
+#sharedImpressionsPanel {
+  z-index: 30;
 }
 
 .book-preview-header {
