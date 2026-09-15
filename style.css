@@ -1217,19 +1217,17 @@ button.advanced-search-toggle {
 }
 
 
-/* 1段の中の本 */
+/* 1段の本 */
 .shelf-row-books {
   display: grid;
-
   grid-template-columns: repeat(8, minmax(0, 1fr));
-
-  column-gap: 22px;
-
+  column-gap: 16px;
   align-items: end;
 
-  padding: 25px 30px 0;
+  width: 100%;
+  padding: 20px 12px 0;
+  box-sizing: border-box;
 }
-
 
 /* 各段の棚板 */
 .shelf-board {
@@ -1261,7 +1259,7 @@ button.advanced-search-toggle {
 @media (max-width: 600px) {
 
   /* 1段の本 */
-  .shelf-row {
+  .shelf-row-books {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 18px;
     padding: 20px 12px 0;
